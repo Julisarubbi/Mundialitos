@@ -372,7 +372,6 @@ const BASE_CLUBES = [
   { "name": "SEATTLE SOUNDERS", "league": "MLS", "url": "https://lh3.googleusercontent.com/d/1DMBmVStQ8LEzogd6vY9PGv7uAJnHq6Sm" },
   { "name": "SENEGAL", "league": "Mundial 2026", "url": "https://lh3.googleusercontent.com/d/1u9M8rniS6pyrwaET6a-7Y5CEi0A0xW1m" },
   { "name": "SERBIA", "league": "Mundial 2026", "url": "https://lh3.googleusercontent.com/d/1hhxOUc2YZ2UtAFRhhgJKpEwDd2xOnQj8" },
-  { "name": "SERBIA", "league": "Mundial 2026", "url": "https://lh3.googleusercontent.com/d/1hhxOUc2YZ2UtAFRhhgJKpEwDd2xOnQj8" },
   { "name": "SEVILLA", "league": "España", "url": "https://lh3.googleusercontent.com/d/18Wks5v-n-WqmGKRWZHkEEMalKZYXvB0j" },
   { "name": "SOL DE AMÉRICA", "league": "Paraguay", "url": "https://lh3.googleusercontent.com/d/1KlEVS528FImsvCc9sHsSDjm4lVfJ7JP5" },
   { "name": "SORRENTO", "league": "Italia", "url": "https://lh3.googleusercontent.com/d/1utaYqZtEFpJuV2PkBeS1RSoxtIhgRSiu" },
@@ -428,7 +427,7 @@ const BASE_CLUBES = [
   { "name": "VASCO DA GAMA", "league": "Brasil", "url": "https://lh3.googleusercontent.com/d/1ILVrNXphGgmHRD-1tzz5Xrl94r84RnH7" },
   { "name": "VÉLEZ", "league": "Argentina", "url": "https://lh3.googleusercontent.com/d/1xFltHyKqKzLnBTen57hknnHqM2yVtsgr" },
   { "name": "VENEZIA", "league": "Italia", "url": "https://lh3.googleusercontent.com/d/1l_A2XBEuD2lbkV5LfKUk4IbJMEPC-EnC" },
-  { "name": "VILLAREAL. league": "España", "url": "https://lh3.googleusercontent.com/d/1t0R7EvMMT1odgCqyIEsEg8Y7S4ESBy-e" },
+  { "name": "VILLAREAL. league", "league": "España", "url": "https://lh3.googleusercontent.com/d/1t0R7EvMMT1odgCqyIEsEg8Y7S4ESBy-e" },
   { "name": "VITORIA", "league": "Brasil", "url": "https://lh3.googleusercontent.com/d/1DLx-08An3aRrTyDtfdXipM3t7XmK3g42" },
   { "name": "WERDER BREMEN", "league": "Alemania", "url": "https://lh3.googleusercontent.com/d/1TqjUE92xC0yvnLJV8BD3Ng-7h-DSixll" },
   { "name": "WEST HAM", "league": "Inglaterra", "url": "https://lh3.googleusercontent.com/d/1gSy7kdzlwX3H5dUJNCnH4oZtHEMhqpUR" },
@@ -2398,7 +2397,6 @@ async function generarPlacaHistoria916(nombreTorneo, formato, campeon, subcampeo
   ctx.textAlign = 'center';
   ctx.fillText('MUNDIALITOS OFICIAL', 540, 110);
 
-  // Fecha del torneo formateada
   const fechaTorneoStr = torneoObj?.created_at 
     ? new Date(torneoObj.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }).toUpperCase()
     : '';
@@ -2644,7 +2642,7 @@ async function generarPlacaHistoria916(nombreTorneo, formato, campeon, subcampeo
 };
 
 // =============================================================
-// REGISTRO DE EVENTOS PRINCIPALES (CORREGIDO Y SEGURO)
+// REGISTRO DE EVENTOS PRINCIPALES (CONFIGURAR EVENTOS INCLUIDO)
 // =============================================================
 function configurarEventos() {
   const formTorneo = document.getElementById('form-crear-torneo');
