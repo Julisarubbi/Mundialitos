@@ -356,7 +356,7 @@ const BASE_CLUBES = [
   { "name": "ROYAL PARI", "league": "Bolivia", "url": "https://lh3.googleusercontent.com/d/1ht-7IPzGFKE-JRV5F69lCYqMTlTjjqpt" },
   { "name": "RUBIO ÑU", "league": "Paraguay", "url": "https://lh3.googleusercontent.com/d/1y7rio9v3RcT0uvzNefWc867JcONnEgVV" },
   { "name": "SAINT ÉTIENNE", "league": "Francia", "url": "https://lh3.googleusercontent.com/d/17t8Hcu8y7p_nAwbCla3X_P-D3g52H6H2" },
-  { "name": "SAN ANTONIO BULO BULO", "league": "Bolivia", "url": "https://lh3.googleusercontent.com/d/1O4fl1bfIghcWs5YOex9fyxSvpMu8YBgd" },
+  { "name": "SAIN ANTONIO BULO BULO", "league": "Bolivia", "url": "https://lh3.googleusercontent.com/d/1O4fl1bfIghcWs5YOex9fyxSvpMu8YBgd" },
   { "name": "SAN JOSE EARTHQUAKES", "league": "MLS", "url": "https://lh3.googleusercontent.com/d/1kGyqEq60XR_sYHmbnXg3iV5YyfrvVCDS" },
   { "name": "SAN JOSÉ ORURO", "league": "Bolivia", "url": "https://lh3.googleusercontent.com/d/1_q13XMFtS_048o8BZKkuOs8qubdS46QJ" },
   { "name": "SAN LORENZO", "league": "Argentina", "url": "https://lh3.googleusercontent.com/d/1-bVGYbtAOudQOygYoEG9QT7N4HUltKy7" },
@@ -371,6 +371,7 @@ const BASE_CLUBES = [
   { "name": "SCHALKE 04", "league": "Alemania", "url": "https://lh3.googleusercontent.com/d/1hXYczTQK-3SYBqUhOp2cyx_2pjSFSZr3" },
   { "name": "SEATTLE SOUNDERS", "league": "MLS", "url": "https://lh3.googleusercontent.com/d/1DMBmVStQ8LEzogd6vY9PGv7uAJnHq6Sm" },
   { "name": "SENEGAL", "league": "Mundial 2026", "url": "https://lh3.googleusercontent.com/d/1u9M8rniS6pyrwaET6a-7Y5CEi0A0xW1m" },
+  { "name": "SERBIA", "league": "Mundial 2026", "url": "https://lh3.googleusercontent.com/d/1hhxOUc2YZ2UtAFRhhgJKpEwDd2xOnQj8" },
   { "name": "SERBIA", "league": "Mundial 2026", "url": "https://lh3.googleusercontent.com/d/1hhxOUc2YZ2UtAFRhhgJKpEwDd2xOnQj8" },
   { "name": "SEVILLA", "league": "España", "url": "https://lh3.googleusercontent.com/d/18Wks5v-n-WqmGKRWZHkEEMalKZYXvB0j" },
   { "name": "SOL DE AMÉRICA", "league": "Paraguay", "url": "https://lh3.googleusercontent.com/d/1KlEVS528FImsvCc9sHsSDjm4lVfJ7JP5" },
@@ -427,7 +428,7 @@ const BASE_CLUBES = [
   { "name": "VASCO DA GAMA", "league": "Brasil", "url": "https://lh3.googleusercontent.com/d/1ILVrNXphGgmHRD-1tzz5Xrl94r84RnH7" },
   { "name": "VÉLEZ", "league": "Argentina", "url": "https://lh3.googleusercontent.com/d/1xFltHyKqKzLnBTen57hknnHqM2yVtsgr" },
   { "name": "VENEZIA", "league": "Italia", "url": "https://lh3.googleusercontent.com/d/1l_A2XBEuD2lbkV5LfKUk4IbJMEPC-EnC" },
-  { "name": "VILLAREAL", "league": "España", "url": "https://lh3.googleusercontent.com/d/1t0R7EvMMT1odgCqyIEsEg8Y7S4ESBy-e" },
+  { "name": "VILLAREAL. league": "España", "url": "https://lh3.googleusercontent.com/d/1t0R7EvMMT1odgCqyIEsEg8Y7S4ESBy-e" },
   { "name": "VITORIA", "league": "Brasil", "url": "https://lh3.googleusercontent.com/d/1DLx-08An3aRrTyDtfdXipM3t7XmK3g42" },
   { "name": "WERDER BREMEN", "league": "Alemania", "url": "https://lh3.googleusercontent.com/d/1TqjUE92xC0yvnLJV8BD3Ng-7h-DSixll" },
   { "name": "WEST HAM", "league": "Inglaterra", "url": "https://lh3.googleusercontent.com/d/1gSy7kdzlwX3H5dUJNCnH4oZtHEMhqpUR" },
@@ -2636,10 +2637,168 @@ async function generarPlacaHistoria916(nombreTorneo, formato, campeon, subcampeo
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#8b949e';
-  ctx.font = '600 22px system-ui, -apple-system, sans-serif';
+  ctx.font = '600 22px system-ui, end';
   ctx.fillText('🏆 Desarrollado con Mundialitos App', 540, 1850);
 
   document.getElementById('modal-placa').style.display = 'flex';
 };
+
+// =============================================================
+// REGISTRO DE EVENTOS PRINCIPALES (CORREGIDO Y SEGURO)
+// =============================================================
+function configurarEventos() {
+  const formTorneo = document.getElementById('form-crear-torneo');
+  if (formTorneo) {
+    formTorneo.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!COMUNIDAD_ACTIVA) return;
+
+      const nombre = formatearNombre(document.getElementById('torneo-nombre').value);
+      const juegoSeleccionado = document.getElementById('torneo-juego').value || 'EA FC 26';
+      const fileInput = document.getElementById('torneo-trofeo-file');
+      const checks = Array.from(document.querySelectorAll('input[name="participantes_check"]:checked')).map(c => c.value);
+
+      if (checks.length < 2) {
+        alert('Debes seleccionar al menos 2 participantes.');
+        return;
+      }
+
+      let rondaInicio = null;
+      let subformato = null;
+
+      if (MODO_TORNEO_NUEVO === 'COPA') {
+        rondaInicio = document.getElementById('copa-ronda-inicio').value;
+        subformato = document.getElementById('copa-tipo-serie').value;
+      } else if (MODO_TORNEO_NUEVO === 'MANO_A_MANO') {
+        if (checks.length !== 2) {
+          alert('Para Mano a Mano debes seleccionar exactamente 2 participantes.');
+          return;
+        }
+        subformato = SUBTIPO_MANO_A_MANO === 'AMISTOSO' ? 'AMISTOSO' : document.getElementById('mano-tipo-serie').value;
+        rondaInicio = 'FINAL';
+      }
+
+      const equiposFinales = {};
+      checks.forEach(jId => {
+        const inputEl = document.getElementById(`input-buscar-club-${jId}`);
+        const clubObj = EQUIPOS_SELECCIONADOS_CREACION[jId] || { name: (inputEl ? formatearNombre(inputEl.value) : 'Club'), url: '' };
+        clubObj.name = formatearNombre(clubObj.name);
+        equiposFinales[jId] = clubObj;
+      });
+
+      let trofeoBase64 = null;
+      if (fileInput.files && fileInput.files[0] && (MODO_TORNEO_NUEVO !== 'MANO_A_MANO' || SUBTIPO_MANO_A_MANO === 'FINAL')) {
+        trofeoBase64 = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (evt) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const maxDim = 800;
+              let w = img.width, h = img.height;
+              if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
+              else if (h > maxDim) { h = Math.round((h * maxDim) / h); h = maxDim; }
+              canvas.width = w; canvas.height = h;
+              canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+              resolve(canvas.toDataURL('image/png'));
+            };
+            img.src = evt.target.result;
+          };
+          reader.readAsDataURL(fileInput.files[0]);
+        });
+      }
+
+      try {
+        const { error } = await db.from('torneos').insert([{
+          nombre,
+          formato: MODO_TORNEO_NUEVO,
+          subformato: subformato,
+          ronda_inicio: rondaInicio,
+          trofeo_url: trofeoBase64,
+          participantes: checks,
+          equipos_participantes: equiposFinales,
+          juego: juegoSeleccionado,
+          comunidad_id: COMUNIDAD_ACTIVA.id
+        }]);
+
+        if (error) throw error;
+        document.getElementById('torneo-nombre').value = '';
+        fileInput.value = '';
+        EQUIPOS_SELECCIONADOS_CREACION = {};
+        await recargarTodo();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+  }
+
+  const formPartido = document.getElementById('form-partido');
+  if (formPartido) {
+    formPartido.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!TORNEO_ACTIVO || !COMUNIDAD_ACTIVA) return;
+
+      const j1 = document.getElementById('p-j1').value;
+      const j2 = document.getElementById('p-j2').value;
+      const g1 = parseInt(document.getElementById('p-g1').value, 10) || 0;
+      const g2 = parseInt(document.getElementById('p-g2').value, 10) || 0;
+      const fase = document.getElementById('p-fase').value;
+      
+      const huboPenales = document.getElementById('check-hubo-penales').checked;
+      let penG1 = null;
+      let penG2 = null;
+      let penGanadorId = null;
+
+      if (huboPenales) {
+        penG1 = parseInt(document.getElementById('p-pen-g1').value, 10);
+        penG2 = parseInt(document.getElementById('p-pen-g2').value, 10);
+
+        if (isNaN(penG1) || isNaN(penG2) || penG1 === penG2) {
+          alert('Debes ingresar un marcador válido con un ganador en penales.');
+          return;
+        }
+
+        penGanadorId = penG1 > penG2 ? j1 : j2;
+      }
+
+      if (j1 === j2) {
+        alert('Debes elegir jugadores distintos.');
+        return;
+      }
+
+      try {
+        const { error } = await db.from('partidos').insert([{
+          torneo_id: TORNEO_ACTIVO.id,
+          jugador1_id: j1,
+          jugador2_id: j2,
+          goles1: g1,
+          goles2: g2,
+          fase: TORNEO_ACTIVO.formato === 'LIGA' ? 'REGULAR' : fase,
+          penales_g1: penG1,
+          penales_g2: penG2,
+          penales_ganador_id: penGanadorId,
+          comunidad_id: COMUNIDAD_ACTIVA.id
+        }]);
+
+        if (error) throw error;
+        document.getElementById('p-g1').value = '0';
+        document.getElementById('p-g2').value = '0';
+        document.getElementById('check-hubo-penales').checked = false;
+        togglePenalesInputs();
+
+        if (fase === 'FINAL' || fase === 'FINAL_VUELTA') {
+          setTimeout(async () => {
+            await recargarTodo();
+            finalizarTorneoActual(true);
+          }, 400);
+        } else {
+          await recargarTodo();
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    });
+  }
+}
 
 window.addEventListener('DOMContentLoaded', inicializar);
