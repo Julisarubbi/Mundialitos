@@ -1473,7 +1473,7 @@ function renderizarLlavesCompetencia() {
     const esc1 = obtenerEscudoJugador(j1_id);
     const esc2 = obtenerEscudoJugador(j2_id);
     const img1 = esc1 ? `<img src="${esc1}" class="club-badge-micro" style="margin-right:4px;">` : '';
-    const img2 = esc2 ? `<img src="${esc2}" class="club-badge-micro" style="margin-right:4px;">` : '';
+    const img2 = esc2 ? `<img src="${esc2}" class="club-badge-micro" style="margin-left:4px;">` : '';
 
     if (sub === 'MEJOR_DE_3' || sub === 'MEJOR_DE_5') {
       let winsJ1 = 0;
@@ -2641,8 +2641,42 @@ async function generarPlacaHistoria916(nombreTorneo, formato, campeon, subcampeo
   document.getElementById('modal-placa').style.display = 'flex';
 };
 
+// -------------------------------------------------------------
+// CONTROL DE PLACA (CERRAR Y GUARDAR EN FOTOS COMPATIBLE CON IOS)
+// -------------------------------------------------------------
+window.cerrarModalPlaca = function() {
+  const modal = document.getElementById('modal-placa');
+  if (modal) modal.style.display = 'none';
+};
+
+window.descargarPlaca = async function() {
+  const canvas = document.getElementById('canvas-placa');
+  if (!canvas) return;
+
+  canvas.toBlob(async (blob) => {
+    if (!blob) return;
+    const archivo = new File([blob], 'placa-mundialitos.png', { type: 'image/png' });
+
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      try {
+        await navigator.share({
+          files: [archivo],
+          title: 'Placa Oficial'
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') console.error(err);
+      }
+    } else {
+      const link = document.createElement('a');
+      link.download = 'placa-mundialitos.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  }, 'image/png');
+};
+
 // =============================================================
-// REGISTRO DE EVENTOS PRINCIPALES (CONFIGURAR EVENTOS INCLUIDO)
+// REGISTRO DE EVENTOS PRINCIPALES
 // =============================================================
 function configurarEventos() {
   const formTorneo = document.getElementById('form-crear-torneo');
