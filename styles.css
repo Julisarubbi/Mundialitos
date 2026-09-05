@@ -315,10 +315,10 @@ button[type="submit"], .btn-primary {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 8px 14px;
   cursor: pointer;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  min-height: 52px;
+  min-height: 44px;
   box-sizing: border-box;
 }
 
@@ -445,7 +445,7 @@ button[type="submit"], .btn-primary {
   border-radius: 8px;
 }
 
-/* HISTORIAL Y PALMARÉS */
+/* HISTORIAL Y PALMARÉS BASE */
 .edicion-card { 
   background: #0d1117; 
   border: 1px solid var(--border); 
@@ -537,128 +537,86 @@ button[type="submit"], .btn-primary {
   font-weight: bold;
 }
 
-/* TABLA HISTÓRICA ADAPTATIVA SIN SCROLL */
-.table-responsive { 
-  overflow-x: hidden; 
-  width: 100%;
+/* ==========================================================================
+   PALMARÉS ESTILO PROMIEDOS (ESCRITORIO >= 820px)
+   ========================================================================== */
+.palmares-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 4px;
 }
 
-table { 
-  width: 100%; 
-  border-collapse: collapse; 
-  text-align: center; 
-  font-size: 0.78rem; 
+.promiedos-header-box {
+  background: #1c2128;
+  color: #f0f6fc;
+  font-weight: 800;
+  text-align: center;
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  margin: -14px -14px 10px -14px;
+}
+
+.tabla-palmares-promiedos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
   table-layout: fixed;
 }
 
-th, td { 
-  padding: 8px 3px; 
-  border-bottom: 1px solid var(--border); 
+.tabla-palmares-promiedos th {
+  background: #161b22;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+.tabla-palmares-promiedos td {
+  padding: 8px 4px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  text-align: center;
   vertical-align: middle;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-th { background: #21262d; color: var(--text-muted); font-size: 0.72rem; }
-
-/* Anchos de columnas balanceados */
-th:nth-child(1), td:nth-child(1) { width: 8%; }  /* # */
-th:nth-child(2), td:nth-child(2) { width: 32%; text-align: left; } /* Jugador */
-th:nth-child(n+3), td:nth-child(n+3) { width: 7.5%; } /* PJ, PG, PE, PP, GF, GC, DIF, PTS */
-
-.player-user-cell {
-  display: block;
+.tabla-palmares-promiedos th:nth-child(1),
+.tabla-palmares-promiedos td:nth-child(1) {
+  width: 50%;
   text-align: left;
-  font-size: 0.8rem;
+  padding-left: 12px;
+}
+
+.tabla-palmares-promiedos th:nth-child(2),
+.tabla-palmares-promiedos td:nth-child(2),
+.tabla-palmares-promiedos th:nth-child(3),
+.tabla-palmares-promiedos td:nth-child(3) {
+  width: 17%;
+  color: var(--text-muted);
   font-weight: 700;
-  color: #58a6ff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-/* H2H CARD Y STATS UNIFICADAS */
-.h2h-card { 
-  background: #0d1117; 
-  border: 1px solid var(--border); 
-  border-radius: 8px; 
-  padding: 14px; 
-  text-align: center; 
+.tabla-palmares-promiedos th:nth-child(4),
+.tabla-palmares-promiedos td:nth-child(4) {
+  width: 16%;
+  font-weight: 900;
+  color: var(--gold);
 }
 
-.h2h-stats-grid {
-  display: flex;
-  justify-content: space-between;
-  align-items: stretch;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.h2h-stat-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #161b22;
-  padding: 10px 4px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  min-height: 72px;
-}
-
-.h2h-stat-col.clickable {
+.fila-ranking-promiedos {
   cursor: pointer;
-  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+  transition: background 0.15s;
 }
 
-.h2h-stat-col.clickable:hover, .h2h-stat-col.clickable:active {
-  transform: translateY(-2px);
-  border-color: #58a6ff;
-  background: #1f2633;
-}
-
-.h2h-stat-num { 
-  font-size: 1.45rem; 
-  font-weight: 900; 
-  line-height: 1; 
-}
-
-.h2h-stat-tag { 
-  font-size: 0.65rem; 
-  color: var(--text-muted); 
-  font-weight: 800; 
-  letter-spacing: 0.5px;
-  margin-top: 4px;
-}
-
-.h2h-stat-name { 
-  font-size: 0.76rem; 
-  color: #fff; 
-  font-weight: 700; 
-  margin-top: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 90px;
-}
-
-.h2h-extra-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.h2h-extra-item {
-  background: #161b22;
-  padding: 10px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+.fila-ranking-promiedos:hover {
+  background: rgba(88, 166, 255, 0.08);
 }
 
 .palmares-grid { 
@@ -696,6 +654,74 @@ th:nth-child(n+3), td:nth-child(n+3) { width: 7.5%; } /* PJ, PG, PE, PP, GF, GC,
 }
 
 .palmares-card:hover { border-color: var(--gold); transform: translateY(-1px); }
+
+/* Ajuste específico de Desktop */
+@media (min-width: 820px) {
+  #view-vitrina.active {
+    display: grid !important;
+    grid-template-columns: 1.25fr 0.75fr !important;
+    gap: 14px !important;
+    align-items: start !important;
+  }
+
+  .col-ediciones-promiedos {
+    grid-column: 1 / 2 !important;
+  }
+
+  .col-ranking-promiedos {
+    grid-column: 2 / 3 !important;
+    position: sticky !important;
+    top: 10px !important;
+  }
+
+  .col-ranking-promiedos .table-responsive {
+    display: block !important;
+  }
+
+  .palmares-grid-mobile {
+    display: none !important;
+  }
+}
+
+/* TABLA HISTÓRICA ADAPTATIVA SIN SCROLL */
+.table-responsive { 
+  overflow-x: hidden; 
+  width: 100%;
+}
+
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+  text-align: center; 
+  font-size: 0.78rem; 
+  table-layout: fixed;
+}
+
+th, td { 
+  padding: 8px 3px; 
+  border-bottom: 1px solid var(--border); 
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+th { background: #21262d; color: var(--text-muted); font-size: 0.72rem; }
+
+th:nth-child(1), td:nth-child(1) { width: 8%; }
+th:nth-child(2), td:nth-child(2) { width: 32%; text-align: left; }
+th:nth-child(n+3), td:nth-child(n+3) { width: 7.5%; }
+
+.player-user-cell {
+  display: block;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #58a6ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 .ediciones-list, .padron-list, .partidos-historial-list { 
   display: flex; 
@@ -781,4 +807,452 @@ th:nth-child(n+3), td:nth-child(n+3) { width: 7.5%; } /* PJ, PG, PE, PP, GF, GC,
   
   table { font-size: 0.72rem; }
   th, td { padding: 6px 2px; }
+}
+
+/* ==========================================================================
+   SECCIÓN HISTORIALES: SUB-VISTAS INTEGRADAS Y ANCHO COMPLETO
+   ========================================================================== */
+#view-h2h {
+  width: 100% !important;
+  display: none;
+  grid-column: 1 / -1 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+#view-h2h.active {
+  display: block !important;
+}
+
+#historial-vista-seleccion,
+#historial-vista-detalle,
+#historial-vista-ficha-completa {
+  width: 100%;
+  background: #161b22;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+#historial-vista-ficha-completa {
+  padding: 14px;
+}
+
+.promiedos-header {
+  background: #1c2128;
+  color: #f0f6fc;
+  font-weight: 800;
+  text-align: center;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+}
+
+.promiedos-grid-jugadores {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 14px;
+  box-sizing: border-box;
+}
+
+.btn-jugador-promiedos {
+  background: #21262d;
+  color: #f0f6fc;
+  border: 1px solid var(--border);
+  padding: 14px 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s, border-color 0.15s;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.btn-jugador-promiedos:hover {
+  background: #2a313c;
+  border-color: #58a6ff;
+  color: #58a6ff;
+}
+
+.btn-volver-historial {
+  background: #21262d;
+  color: #f0f6fc;
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-block;
+  width: auto;
+}
+
+.btn-volver-historial:hover {
+  background: #30363d;
+}
+
+.tabla-promiedos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  color: #f0f6fc;
+  table-layout: fixed;
+}
+
+.tabla-promiedos th {
+  background: #161b22;
+  color: var(--text-muted);
+  padding: 10px 4px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.tabla-promiedos td {
+  padding: 10px 4px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  vertical-align: middle;
+}
+
+.tabla-promiedos th:nth-child(1), .tabla-promiedos td:nth-child(1) { width: 34%; text-align: left; padding-left: 14px; }
+.tabla-promiedos th:nth-child(2), .tabla-promiedos td:nth-child(2) { width: 14%; }
+.tabla-promiedos th:nth-child(3), .tabla-promiedos td:nth-child(3) { width: 8.5%; }
+.tabla-promiedos th:nth-child(4), .tabla-promiedos td:nth-child(4) { width: 8.5%; }
+.tabla-promiedos th:nth-child(5), .tabla-promiedos td:nth-child(5) { width: 8.5%; }
+.tabla-promiedos th:nth-child(6), .tabla-promiedos td:nth-child(6) { width: 8.5%; }
+.tabla-promiedos th:nth-child(7), .tabla-promiedos td:nth-child(7) { width: 18%; }
+
+.badge-dif-favor,
+.badge-dif-contra,
+.badge-dif-cero {
+  display: inline-block;
+  min-width: 38px;
+  text-align: center;
+  font-weight: 800;
+  padding: 3px 0;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  box-sizing: border-box;
+}
+
+.badge-dif-favor {
+  background: rgba(46, 160, 67, 0.2);
+  color: #3fb950;
+  border: 1px solid #2ea043;
+}
+
+.badge-dif-contra {
+  background: rgba(248, 81, 73, 0.2);
+  color: #f85149;
+  border: 1px solid #da3633;
+}
+
+.badge-dif-cero {
+  background: rgba(110, 118, 129, 0.2);
+  color: #8b949e;
+  border: 1px solid #6e7681;
+}
+
+.btn-ficha-mas {
+  background: #21262d;
+  color: #58a6ff;
+  border: 1px solid var(--border);
+  font-weight: 900;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  line-height: 1;
+  margin: 0 auto;
+}
+
+.btn-ficha-mas:hover {
+  background: #30363d;
+  border-color: #58a6ff;
+}
+
+.stats-row-h2h {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.stat-card-h2h {
+  background: #0d1117;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  min-height: 60px;
+  box-sizing: border-box;
+}
+
+.stat-card-h2h small {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.stat-card-h2h strong {
+  margin-top: 4px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.stat-card-h2h.clickable {
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.stat-card-h2h.clickable:hover {
+  transform: translateY(-2px);
+  border-color: #f1e05a;
+  background: rgba(241, 224, 90, 0.08);
+}
+
+.stat-card-h2h.clickable:active {
+  transform: scale(0.98);
+}
+
+.filtros-h2h-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.btn-filtro-h2h {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-filtro-h2h:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.btn-filtro-h2h.active {
+  background: #58a6ff;
+  border-color: #58a6ff;
+  color: #0d1117;
+}
+
+.lista-partidos-h2h {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tarjeta-partido-h2h-pro {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s;
+}
+
+.tarjeta-partido-h2h-pro:hover {
+  border-color: #58a6ff;
+}
+
+.fila-matchup-h2h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.lado-jugador {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f0f6fc;
+}
+
+.lado-jugador.local {
+  justify-content: flex-start;
+}
+
+.lado-jugador.visitante {
+  justify-content: flex-end;
+}
+
+.lado-score {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 90px;
+}
+
+.score-centro-h2h {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #f1e05a;
+  letter-spacing: 1px;
+}
+
+.score-centro-h2h.penales {
+  font-size: 0.95rem;
+}
+
+.fila-meta-h2h {
+  text-align: center;
+  font-size: 0.72rem;
+  color: #8b949e;
+  font-weight: 500;
+}
+
+@keyframes pulsoGoleada {
+  0% { border-color: #f1e05a; box-shadow: 0 0 16px rgba(241, 224, 90, 0.6); }
+  50% { border-color: #ffd700; box-shadow: 0 0 24px rgba(255, 215, 0, 0.9); }
+  100% { border-color: #30363d; box-shadow: none; }
+}
+
+.tarjeta-partido-h2h-pro.resaltar-goleada {
+  animation: pulsoGoleada 2s ease-out;
+  background: #1c2128;
+}
+
+/* ==========================================================================
+   VISTA CLÁSICA ORIGINAL EXCLUSIVA PARA CELULARES (<= 819px)
+   ========================================================================== */
+@media (max-width: 819px) {
+  #view-vitrina.active {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+  }
+
+  /* La barra superior se transforma en la cabecera original de Palmarés */
+  .palmares-top-bar {
+    order: 1 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .palmares-top-bar h2 {
+    font-size: 1.05rem !important;
+    color: var(--text) !important;
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+    margin: 0 !important;
+    font-weight: 700 !important;
+  }
+
+  .palmares-top-bar h2::after {
+    content: " Histórico" !important;
+  }
+
+  .palmares-top-bar select {
+    width: auto !important;
+    min-width: 140px !important;
+    padding: 4px 8px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* La tarjeta de Ranking se ubica después de la barra (actúa como el contenedor del carrusel) */
+  .col-ranking-promiedos {
+    order: 2 !important;
+    width: 100% !important;
+    position: static !important;
+    padding: 10px !important;
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+  }
+
+  /* Ocultamos la cabecera interna gris en el celular */
+  .col-ranking-promiedos .promiedos-header-box {
+    display: none !important;
+  }
+
+  .col-ranking-promiedos .table-responsive {
+    display: none !important;
+  }
+
+  /* Carrusel horizontal idéntico a Netlify */
+  .palmares-grid-mobile {
+    display: flex !important;
+    gap: 10px !important;
+    overflow-x: auto !important;
+    padding: 4px 2px !important;
+    scroll-snap-type: x mandatory !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .palmares-grid-mobile::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  /* Columna de Ediciones abajo */
+  .col-ediciones-promiedos {
+    order: 3 !important;
+    width: 100% !important;
+    padding: 14px !important;
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 8px !important;
+  }
+
+  /* Restauramos el título con la aclaración de tocar para ver la placa */
+  .col-ediciones-promiedos .promiedos-header-box {
+    background: transparent !important;
+    border-bottom: 1px solid var(--border) !important;
+    margin: 0 0 10px 0 !important;
+    padding: 0 0 8px 0 !important;
+    text-align: left !important;
+  }
+
+  .col-ediciones-promiedos .promiedos-header-box span {
+    font-size: 0 !important;
+  }
+
+  .col-ediciones-promiedos .promiedos-header-box span::before {
+    content: "📜 Historial de Ediciones Finalizadas" !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: var(--text) !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+  }
 }

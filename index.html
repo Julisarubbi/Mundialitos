@@ -53,7 +53,7 @@
     <button class="tab-btn active" onclick="cambiarPestana('jornada')">🎮 Competencia Actual</button>
     <button class="tab-btn" onclick="cambiarPestana('vitrina')">⭐ Palmarés</button>
     <button class="tab-btn" onclick="cambiarPestana('historica')">📊 Tabla Histórica</button>
-    <button class="tab-btn" onclick="cambiarPestana('h2h')">⚔️ Cara a Cara</button>
+    <button class="tab-btn" onclick="cambiarPestana('h2h')">⚔️ Historiales</button>
     <button class="tab-btn" onclick="cambiarPestana('padron')">👥 Padrón</button>
   </nav>
 
@@ -73,21 +73,23 @@
             </div>
             <div>
               <label>Juego / Edición</label>
-              <select id="torneo-juego">
-                <option value="EA FC 26" selected>EA FC 26</option>
-                <option value="EA FC 25">EA FC 25</option>
-                <option value="EA FC 24">EA FC 24</option>
-                <option value="FIFA 23">FIFA 23</option>
-                <option value="FIFA 22">FIFA 22</option>
-                <option value="FIFA 21">FIFA 21</option>
-                <option value="FIFA 20">FIFA 20</option>
-                <option value="FIFA 19">FIFA 19</option>
-                <option value="FIFA 18">FIFA 18</option>
-                <option value="FIFA 17">FIFA 17</option>
-                <option value="FIFA 16">FIFA 16</option>
-                <option value="FIFA 15">FIFA 15</option>
-                <option value="eFootball / PES">eFootball / PES</option>
-                <option value="Otro">Otro</option>
+              <select id="torneo-juego" required>
+               <option value="" disabled selected>Seleccioná un juego...</option>
+               <option value="EA FC 26">EA FC 26</option>
+               <option value="EA FC 25">EA FC 25</option>
+               <option value="EA FC 24">EA FC 24</option>
+               <option value="FIFA 23">FIFA 23</option>
+               <option value="FIFA 22">FIFA 22</option>
+               <option value="FIFA 21">FIFA 21</option>
+               <option value="FIFA 20">FIFA 20</option>
+               <option value="FIFA 19">FIFA 19</option>
+               <option value="FIFA 18">FIFA 18</option>
+               <option value="FIFA 17">FIFA 17</option>
+               <option value="FIFA 16">FIFA 16</option>
+               <option value="FIFA 15">FIFA 15</option>
+               <option value="FIFA 14">FIFA 14</option>
+               <option value="PES / eFootball">PES / eFootball</option>
+               <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
@@ -125,7 +127,7 @@
             <label style="font-size:0.8rem; color:var(--text-muted);">Tipo de Encuentro</label>
             <div class="mode-selector" style="margin-top:4px;">
               <button type="button" class="mode-btn active" id="btn-mano-amistoso" onclick="setSubtipoMano('AMISTOSO')">⚡ Amistoso</button>
-              <button type="button" class="mode-btn" id="btn-mano-final" onclick="setSubtipoMano('FINAL')">🏆 Final Oficial (Con Trofeo)</button>
+              <button type="button" class="mode-btn" id="btn-mano-final" onclick="setSubtipoMano('FINAL')">🏆 Final Oficial</button>
             </div>
 
             <div id="box-mano-final-ajustes" style="display:none; margin-top:10px; padding-top:8px; border-top:1px dashed var(--border);">
@@ -178,7 +180,7 @@
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
             <button type="button" class="btn-secondary" style="width:auto; padding:6px 10px; font-size:0.75rem;" onclick="abrirModalEditarTorneo()">⚙️ Ajustes</button>
-            <button type="button" class="btn-danger-sm" id="btn-finalizar-manual" onclick="finalizarTorneoActual()">🏁 Finalizar & Placa</button>
+            <button type="button" class="btn-danger-sm" id="btn-finalizar-manual" onclick="finalizarTorneoActual()">🏁 Finalizar</button>
           </div>
         </div>
 
@@ -264,21 +266,44 @@
       </section>
     </div>
 
-    <!-- 2. PESTAÑA: PALMARÉS -->
+    <!-- 2. PESTAÑA: PALMARÉS (LAYOUT PROMIEDOS ADAPTATIVO) -->
     <div id="view-vitrina" class="tab-view">
-      <section class="card full-width">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-          <h2>⭐ Palmarés Histórico</h2>
-          <select id="filtro-juego-palmares" style="width:auto; min-width:160px; padding:4px 8px; font-size:0.8rem;" onchange="renderizarVitrina()">
-            <option value="TODOS">Todos los Juegos</option>
-          </select>
+      <!-- HEADER CON SELECTOR DE JUEGOS -->
+      <div class="palmares-top-bar full-width">
+        <h2 style="font-size: 1.1rem; color: #58a6ff; margin: 0;">⭐ Palmarés & Historial de Ediciones</h2>
+        <select id="filtro-juego-palmares" style="width: auto; min-width: 170px; padding: 5px 10px; font-size: 0.8rem;" onchange="renderizarVitrina()">
+          <option value="TODOS">Todos los Juegos</option>
+        </select>
+      </div>
+
+      <!-- COLUMNA IZQUIERDA: HISTORIAL DE CAMPEONATOS -->
+      <section class="card col-ediciones-promiedos">
+        <div class="promiedos-header-box">
+          <span>HISTORIAL DE EDICIONES</span>
         </div>
-        <div id="vitrina-palmares" class="palmares-grid"></div>
+        <div id="vitrina-ediciones" class="ediciones-list"></div>
       </section>
 
-      <section class="card full-width">
-        <h2>📜 Historial de Ediciones Finalizadas (Tocá una para ver su placa)</h2>
-        <div id="vitrina-ediciones" class="ediciones-list"></div>
+      <!-- COLUMNA DERECHA: TABLA RANKING PALMARÉS -->
+      <section class="card col-ranking-promiedos">
+        <div class="promiedos-header-box">
+          <span>RANKING DE TÍTULOS</span>
+        </div>
+        <div class="table-responsive">
+          <table class="tabla-palmares-promiedos">
+            <thead>
+              <tr>
+                <th style="text-align: left; padding-left: 12px;">JUGADOR</th>
+                <th title="Ligas">🏆 L</th>
+                <th title="Copas">⚔️ C</th>
+                <th>TOT</th>
+              </tr>
+            </thead>
+            <tbody id="body-tabla-palmares"></tbody>
+          </table>
+        </div>
+        <!-- Contenedor móvil horizontal tradicional -->
+        <div id="vitrina-palmares-movil" class="palmares-grid-mobile"></div>
       </section>
     </div>
 
@@ -302,17 +327,67 @@
       </section>
     </div>
 
-    <!-- 4. PESTAÑA: CARA A CARA (H2H) -->
-    <div id="view-h2h" class="tab-view">
-      <section class="card full-width">
-        <h2>⚔️ Historial Cara a Cara</h2>
-        <div class="matchup-row" style="margin-bottom: 16px;">
-          <select id="h2h-j1" onchange="renderizarH2H()"></select>
-          <span class="vs">VS</span>
-          <select id="h2h-j2" onchange="renderizarH2H()"></select>
+    <!-- 4. PESTAÑA: HISTORIALES -->
+    <div id="view-h2h" class="tab-view card full-width">
+      
+      <!-- Sub-vista 1: Grilla de Selección de Jugadores -->
+      <div id="historial-vista-seleccion">
+        <div class="promiedos-header">⚔️ HISTORIALES POR JUGADOR</div>
+        <div id="grid-historial-jugadores" class="promiedos-grid-jugadores"></div>
+      </div>
+
+      <!-- Sub-vista 2: Tabla Resumen contra Rivales -->
+      <div id="historial-vista-detalle" style="display: none;">
+        <div style="padding: 10px 14px; background: #161b22; border-bottom: 1px solid var(--border);">
+          <button type="button" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:0.8rem;" onclick="volverASeleccionHistorial()">⬅ Elegir otro jugador</button>
         </div>
-        <div id="h2h-resultado" class="h2h-card"></div>
-      </section>
+        <div id="historial-detalle-header" class="promiedos-header">HISTORIAL</div>
+        
+        <div class="table-responsive">
+          <table class="tabla-promiedos">
+            <thead>
+              <tr>
+                <th style="text-align: left; padding-left: 14px;">RIVAL</th>
+                <th>DIF</th>
+                <th>PJ</th>
+                <th>PG</th>
+                <th>PE</th>
+                <th>PP</th>
+                <th style="text-align: center;">FICHA</th>
+              </tr>
+            </thead>
+            <tbody id="body-tabla-historial-promiedos"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sub-vista 3: Ficha Detallada H2H (Racha, Goleada y Cruces) -->
+      <div id="historial-vista-ficha-completa" style="display: none;">
+        <button type="button" class="btn-secondary" style="margin-bottom: 14px;" onclick="volverADetalleRivales()">⬅ Volver a Rivales</button>
+        
+        <h3 id="ficha-completa-titulo" style="text-align: center; font-size: 1.15rem; color: #fff; text-transform: uppercase; margin-bottom: 16px; letter-spacing: 0.5px;"></h3>
+
+        <!-- TARJETAS SUPERIORES EN 2 LÍNEAS -->
+        <div class="stats-row-h2h">
+          <div class="stat-card-h2h">
+            <small>🔥 RACHA ACTUAL</small>
+            <strong id="ficha-invicto-txt">Sin partidos</strong>
+          </div>
+          <div class="stat-card-h2h">
+            <small>⚡ MAYOR GOLEADA</small>
+            <strong id="ficha-goleada-txt">-</strong>
+          </div>
+        </div>
+
+        <!-- ENCABEZADO Y FILTROS ABAJO -->
+        <div style="margin-top: 20px; margin-bottom: 10px;">
+          <h4 style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px 2px;">TODOS LOS ENFRENTAMIENTOS</h4>
+          <div id="ficha-filtros-h2h" class="filtros-h2h-pills"></div>
+        </div>
+
+        <div id="ficha-lista-partidos" class="lista-partidos-h2h"></div>
+      </div>
+
     </div>
 
     <!-- 5. PESTAÑA: PADRÓN -->
@@ -436,7 +511,7 @@
         <input type="file" id="edit-torneo-trofeo-file" accept="image/*">
 
         <div style="display:flex; gap:8px; margin-top:14px;">
-          <button type="submit" class="btn-primary" style="flex:1;">💾 Guardar Cambios</button>
+          <button type="submit" class="btn-primary" style="flex:1;">💾 Guardar</button>
           <button type="button" class="btn-secondary" style="flex:1;" onclick="cerrarModalEditarTorneo()">Cancelar</button>
         </div>
       </form>
@@ -525,6 +600,26 @@
       <div id="modal-h2h-lista" style="display:flex; flex-direction:column; gap:6px; max-height:340px; overflow-y:auto;"></div>
       
       <button type="button" class="btn-secondary" style="margin-top:14px; width:100%;" onclick="cerrarModalH2HDetalle()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- MODAL 10: EDITAR TROFEO DE TORNEO FINALIZADO -->
+  <div id="modal-editar-trofeo-finalizado" class="modal-backdrop">
+    <div class="modal-card">
+      <h3 id="modal-editar-trofeo-titulo" style="font-size: 1.1rem; color: #58a6ff; margin-bottom: 12px;">Editar Trofeo</h3>
+      <form id="form-editar-trofeo-finalizado" onsubmit="guardarTrofeoTorneoFinalizado(event)">
+        <input type="hidden" id="edit-trofeo-torneo-id">
+        
+        <div style="text-align: left; margin-bottom: 8px;">
+          <label style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">Nueva Imagen de Trofeo (PNG / JPG):</label>
+          <input type="file" id="edit-trofeo-file" accept="image/*" required>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <button type="button" class="btn-secondary" onclick="cerrarModalEditarTrofeoFinalizado()">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar Trofeo</button>
+        </div>
+      </form>
     </div>
   </div>
 
