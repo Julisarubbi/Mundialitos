@@ -21,8 +21,9 @@
 </head>
 <body>
 
-  <!-- BARRA SUPERIOR DE COMUNIDADES Y PERFIL -->
+  <!-- BARRA SUPERIOR CON TÍTULO INCRUSTADO EN PC -->
   <div class="top-nav-bar">
+    <!-- Izquierda: Selector de Comunidad -->
     <div class="community-selector-wrapper">
       <button type="button" class="btn-community-selector" onclick="toggleMenuComunidades()">
         <span id="label-comunidad-activa">🌐 Cargando...</span>
@@ -38,15 +39,22 @@
       </div>
     </div>
 
-    <div style="display:flex; align-items:center; gap:8px;">
-      <span id="label-usuario-global" style="font-size:0.8rem; font-weight:bold; color:#58a6ff;">👤 @usuario</span>
-      <button type="button" class="btn-link-sm" onclick="cerrarSesion()">[Salir]</button>
+    <!-- Centro: Título incrustado (Solo visible en PC) -->
+    <div class="nav-brand-desktop">
+      <h1>🏆 MUNDIALITOS</h1>
+    </div>
+    
+
+    <!-- Derecha: Perfil de usuario -->
+    <div class="user-pill-trigger" onclick="abrirModalPerfilUsuario()">
+      <div id="user-avatar-mini" class="user-avatar-mini">👤</div>
+      <span id="label-usuario-global" style="font-size:0.8rem; font-weight:bold; color:#58a6ff;">@usuario</span>
     </div>
   </div>
 
-  <header>
+  <!-- HEADER CLÁSICO (Solo visible en Celular, sin el texto redundante de comunidad) -->
+  <header class="header-mobile">
     <h1>🏆 MUNDIALITOS</h1>
-    <p id="subtitulo-comunidad">Historial & Estadísticas de Torneos</p>
   </header>
 
   <nav class="tabs">
@@ -62,34 +70,40 @@
     <!-- 1. PESTAÑA: COMPETENCIA ACTUAL -->
     <div id="view-jornada" class="tab-view active">
       
+      <!-- CARRUSEL DE ÚLTIMOS PARTIDOS RECIENTES -->
+      <div id="home-ticker-partidos" class="ticker-partidos-container">
+        <div class="ticker-header-label">⚡ Últimos Enfrentamientos de la Comunidad</div>
+        <div id="ticker-lista-carrusel" class="ticker-carrusel-track"></div>
+      </div>
+
       <!-- CREADOR DE JUEGO / COMPETENCIA -->
       <section id="box-crear-torneo" class="card full-width">
         <h2>⚡ Iniciar Nueva Competencia</h2>
         <form id="form-crear-torneo">
           <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
             <div>
-              <label>Nombre del Encuentro / Torneo</label>
+              <label>Nombre del Torneo</label>
               <input type="text" id="torneo-nombre" placeholder="Ej: Supercopa Sadie Sink" required>
             </div>
             <div>
-              <label>Juego / Edición</label>
+              <label>Edición</label>
               <select id="torneo-juego" required>
-               <option value="" disabled selected>Seleccioná un juego...</option>
-               <option value="EA FC 26">EA FC 26</option>
-               <option value="EA FC 25">EA FC 25</option>
-               <option value="EA FC 24">EA FC 24</option>
-               <option value="FIFA 23">FIFA 23</option>
-               <option value="FIFA 22">FIFA 22</option>
-               <option value="FIFA 21">FIFA 21</option>
-               <option value="FIFA 20">FIFA 20</option>
-               <option value="FIFA 19">FIFA 19</option>
-               <option value="FIFA 18">FIFA 18</option>
-               <option value="FIFA 17">FIFA 17</option>
-               <option value="FIFA 16">FIFA 16</option>
-               <option value="FIFA 15">FIFA 15</option>
-               <option value="FIFA 14">FIFA 14</option>
-               <option value="PES / eFootball">PES / eFootball</option>
-               <option value="Otro">Otro</option>
+                <option value="" disabled selected>Ej: PES 6</option>
+                <option value="EA FC 26">EA FC 26</option>
+                <option value="EA FC 25">EA FC 25</option>
+                <option value="EA FC 24">EA FC 24</option>
+                <option value="FIFA 23">FIFA 23</option>
+                <option value="FIFA 22">FIFA 22</option>
+                <option value="FIFA 21">FIFA 21</option>
+                <option value="FIFA 20">FIFA 20</option>
+                <option value="FIFA 19">FIFA 19</option>
+                <option value="FIFA 18">FIFA 18</option>
+                <option value="FIFA 17">FIFA 17</option>
+                <option value="FIFA 16">FIFA 16</option>
+                <option value="FIFA 15">FIFA 15</option>
+                <option value="FIFA 14">FIFA 14</option>
+                <option value="PES 6">PES 6</option>
+                <option value="Otro">Otro</option>
               </select>
             </div>
           </div>
@@ -147,9 +161,33 @@
             <input type="file" id="torneo-trofeo-file" accept="image/*">
           </div>
 
-          <!-- PARTICIPANTES -->
-          <label style="margin-top:8px;" id="label-participantes">Seleccionar Participantes del Padrón</label>
-          <div id="lista-check-jugadores" class="checkbox-grid"></div>
+          <!-- PARTICIPANTES (BOTÓN DISPARADOR DE SUBMENÚ) -->
+          <div style="margin-top: 10px;">
+            <label style="display: block; margin-bottom: 4px;">Participantes</label>
+            <button type="button" class="btn-secondary" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px;" onclick="abrirModalSeleccionParticipantes()">
+              <span id="label-resumen-participantes">Seleccionar del Padrón (0 elegidos)</span>
+              <span style="font-size: 0.8rem; color: #58a6ff;">👥 Elegir</span>
+            </button>
+          </div>
+
+          <!-- MODAL: SELECCIÓN DE PARTICIPANTES DEL PADRÓN -->
+          <div id="modal-seleccion-participantes" class="modal-backdrop">
+            <div class="modal-card modal-participantes-card">
+              <div class="perfil-header-row" style="margin-bottom: 8px; padding-bottom: 8px;">
+                <h3 style="color: #fff; font-size: 1.05rem; margin: 0;">👥 Seleccionar Participantes</h3>
+                <button type="button" class="btn-secondary btn-cerrar-modal" onclick="cerrarModalSeleccionParticipantes()">✕</button>
+              </div>
+
+              <p style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 12px;">Tocá a los miembros que van a disputar esta competencia.</p>
+
+              <!-- Grilla limpia y espaciada -->
+              <div id="lista-tarjetas-participantes" class="grid-participantes-pro"></div>
+
+              <div style="margin-top: 16px;">
+                <button type="button" class="btn-primary" style="width: 100%; padding: 10px; font-weight: 800;" onclick="confirmarSeleccionParticipantes()">CONFIRMAR</button>
+              </div>
+            </div>
+          </div>
 
           <!-- ASIGNACIÓN DE EQUIPOS DINÁMICA -->
           <div id="box-seleccion-equipos" style="margin-top:10px; background:#0d1117; padding:10px; border-radius:8px; border:1px solid var(--border); display:none;">
@@ -338,10 +376,10 @@
 
       <!-- Sub-vista 2: Tabla Resumen contra Rivales -->
       <div id="historial-vista-detalle" style="display: none;">
-        <div style="padding: 10px 14px; background: #161b22; border-bottom: 1px solid var(--border);">
-          <button type="button" class="btn-secondary" style="width:auto; padding:6px 12px; font-size:0.8rem;" onclick="volverASeleccionHistorial()">⬅ Elegir otro jugador</button>
+        <div class="ficha-h2h-top-bar" style="padding: 10px 14px; border-bottom: 1px solid var(--border); margin-bottom: 0;">
+          <button type="button" class="btn-volver-icono" onclick="volverASeleccionHistorial()" title="Elegir otro jugador">←</button>
+          <h3 id="historial-detalle-header" class="ficha-h2h-titulo-inline">HISTORIAL</h3>
         </div>
-        <div id="historial-detalle-header" class="promiedos-header">HISTORIAL</div>
         
         <div class="table-responsive">
           <table class="tabla-promiedos">
@@ -363,9 +401,10 @@
 
       <!-- Sub-vista 3: Ficha Detallada H2H (Racha, Goleada y Cruces) -->
       <div id="historial-vista-ficha-completa" style="display: none;">
-        <button type="button" class="btn-secondary" style="margin-bottom: 14px;" onclick="volverADetalleRivales()">⬅ Volver a Rivales</button>
-        
-        <h3 id="ficha-completa-titulo" style="text-align: center; font-size: 1.15rem; color: #fff; text-transform: uppercase; margin-bottom: 16px; letter-spacing: 0.5px;"></h3>
+        <div class="ficha-h2h-top-bar">
+          <button type="button" class="btn-volver-icono" onclick="volverADetalleRivales()" title="Volver a Rivales">←</button>
+          <h3 id="ficha-completa-titulo" class="ficha-h2h-titulo-inline"></h3>
+        </div>
 
         <!-- TARJETAS SUPERIORES EN 2 LÍNEAS -->
         <div class="stats-row-h2h">
@@ -379,16 +418,21 @@
           </div>
         </div>
 
-        <!-- ENCABEZADO Y FILTROS ABAJO -->
-        <div style="margin-top: 20px; margin-bottom: 10px;">
-          <h4 style="font-size: 0.8rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px 2px;">TODOS LOS ENFRENTAMIENTOS</h4>
-          <div id="ficha-filtros-h2h" class="filtros-h2h-pills"></div>
+        <!-- ENCABEZADO CON MENÚ DESPLEGABLE DE MESES A LA DERECHA -->
+        <div class="h2h-header-filtros-row">
+          <h4 class="h2h-subtitulo-enfrentamientos">TODOS LOS ENFRENTAMIENTOS</h4>
+          <select id="select-mes-h2h" class="select-mes-dropdown" onchange="window.filtrarPartidosFichaMesDropdown(this.value)">
+            <option value="TODOS">Seleccioná un mes...</option>
+          </select>
         </div>
+
+        <!-- BOTONES DE FILTRO RÁPIDO (TODOS / GANADOR) -->
+        <div id="ficha-filtros-h2h" class="filtros-h2h-pills"></div>
 
         <div id="ficha-lista-partidos" class="lista-partidos-h2h"></div>
       </div>
 
-    </div>
+    </div> <!-- CIERRE CORRECTO DE VIEW-H2H -->
 
     <!-- 5. PESTAÑA: PADRÓN -->
     <div id="view-padron" class="tab-view">
@@ -503,7 +547,7 @@
           <option value="FIFA 17">FIFA 17</option>
           <option value="FIFA 16">FIFA 16</option>
           <option value="FIFA 15">FIFA 15</option>
-          <option value="eFootball / PES">eFootball / PES</option>
+          <option value="PES 6">PES 6</option>
           <option value="Otro">Otro</option>
         </select>
 
@@ -620,6 +664,144 @@
           <button type="submit" class="btn-primary">Guardar Trofeo</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE PERFIL E HISTORIAL PERSONAL CON SUBMENÚ DE EDICIÓN -->
+  <div id="modal-perfil-usuario" class="modal-backdrop">
+    <div class="modal-card modal-perfil-card">
+      
+      <!-- SUB-VISTA 1: RESUMEN DEL PERFIL Y BITÁCORA -->
+      <div id="perfil-vista-resumen" class="perfil-subvista">
+        <div class="perfil-header-row">
+          <div id="perfil-avatar-big" class="user-avatar-big">👤</div>
+          <div>
+            <h3 id="perfil-nombre-txt" style="color: #fff; font-size: 1.15rem; margin: 0;">Nombre</h3>
+            <span id="perfil-username-txt" style="color: #58a6ff; font-size: 0.85rem; font-weight: bold;">@usuario</span>
+          </div>
+          <button type="button" class="btn-secondary btn-cerrar-modal" onclick="cerrarModalPerfilUsuario()">✕</button>
+        </div>
+
+        <button type="button" class="btn-secondary btn-abrir-edicion" onclick="mostrarSubmenuEdicion(true)">⚙️ Editar Mis Datos</button>
+
+        <div class="perfil-scroll-area">
+          <h4 class="perfil-section-title">Tus Estadísticas en la Comunidad</h4>
+          <div class="perfil-stats-grid">
+            <div class="perfil-stat-box"><small>PJ</small><strong id="p-stat-pj">0</strong></div>
+            <div class="perfil-stat-box"><small>PG</small><strong id="p-stat-pg" style="color: #3fb950;">0</strong></div>
+            <div class="perfil-stat-box"><small>PE</small><strong id="p-stat-pe">0</strong></div>
+            <div class="perfil-stat-box"><small>PP</small><strong id="p-stat-pp" style="color: #f85149;">0</strong></div>
+            <div class="perfil-stat-box" title="Efectividad de Puntos"><small>EF</small><strong id="p-stat-efec" style="color: var(--gold);">0%</strong></div>
+          </div>
+
+          <h4 class="perfil-section-title" style="margin-top: 14px;">Tu Bitácora de Partidos (Recientes)</h4>
+          <div id="perfil-lista-partidos" class="perfil-partidos-scroll"></div>
+        </div>
+
+        <div class="perfil-footer-row">
+          <button type="button" class="btn-danger-sm" style="padding: 8px 14px; font-size: 0.8rem;" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+          <button type="button" class="btn-secondary" style="width: auto; padding: 8px 18px; font-size: 0.8rem;" onclick="cerrarModalPerfilUsuario()">Cerrar</button>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA INTERMEDIA: VALIDAR PIN PARA ACCEDER -->
+      <div id="perfil-vista-validar-pin" class="perfil-subvista" style="display: none; text-align: center; justify-content: center; padding: 20px 10px;">
+        <div style="font-size: 2rem; margin-bottom: 8px;">🔒</div>
+        <h3 style="color: #fff; font-size: 1.1rem; margin-bottom: 6px;">Confirmá tu Identidad</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Ingresá tu PIN de seguridad actual para editar tus datos personales.</p>
+        
+        <form onsubmit="confirmarPinParaEditar(event)" style="max-width: 260px; margin: 0 auto; gap: 10px;">
+          <input type="password" id="check-pin-acceso" maxlength="4" pattern="[0-9]{4}" placeholder="••••" required style="text-align: center; letter-spacing: 6px; font-size: 1.2rem; padding: 10px;">
+          <button type="submit" class="btn-primary" style="padding: 10px;">Continuar</button>
+          <button type="button" class="btn-secondary" style="padding: 8px;" onclick="cancelarValidacionPin()">Cancelar</button>
+        </form>
+      </div>
+
+      <!-- SUB-VISTA 2: FORMULARIO DE EDICIÓN EXCLUSIVO -->
+      <div id="perfil-vista-edicion" class="perfil-subvista" style="display: none;">
+        <div class="perfil-header-row">
+          <h3 style="color: #fff; font-size: 1.1rem; margin: 0;">⚙️ Modificar Mis Datos</h3>
+          <button type="button" class="btn-secondary btn-cerrar-modal" onclick="mostrarSubmenuEdicion(false)">✕</button>
+        </div>
+
+        <form id="form-editar-perfil-sub" onsubmit="guardarPerfilUsuario(event)" class="perfil-scroll-area" style="gap: 12px;">
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">Nombre de Usuario</label>
+            <input type="text" id="edit-perfil-username" maxlength="12" required style="padding: 8px 12px; font-size: 0.85rem;">
+          </div>
+
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">PIN de Seguridad (4 números)</label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="password" id="edit-perfil-pin" maxlength="4" pattern="[0-9]{4}" required style="padding: 8px 36px 8px 12px; font-size: 0.95rem; letter-spacing: 4px; text-align: center;">
+              <button type="button" onclick="toggleVisibilidadPinPerfil()" style="position: absolute; right: 8px; background: none; border: none; width: auto; padding: 4px; cursor: pointer; font-size: 1rem; line-height: 1;">
+                <span id="icono-ojo-pin">👁️</span>
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">Foto de Perfil</label>
+            <input type="file" id="edit-perfil-file" accept="image/*" style="padding: 6px; font-size: 0.75rem;" onchange="prepararRecorteAvatar(this)">
+          </div>
+
+          <!-- ÁREA DE ENCUADRE CON LÍMITES ESTRICTOS -->
+          <div id="box-recorte-avatar" style="display:none; text-align:center; background:#0d1117; padding:10px; border-radius:8px; border:1px solid var(--border);">
+            <label style="font-size:0.72rem; color:var(--text-muted); display:block; margin-bottom:6px;">Arrastrá la imagen para encuadrar dentro del círculo</label>
+            <div style="position:relative; width:130px; height:130px; margin:0 auto; border-radius:50%; overflow:hidden; border:2px solid #58a6ff; background:#000; touch-action:none;">
+              <canvas id="canvas-crop-avatar" width="300" height="300" style="width:100%; height:100%; cursor:grab;"></canvas>
+            </div>
+            <input type="range" id="zoom-avatar-range" min="1" max="3" step="0.02" value="1" style="width:85%; margin-top:10px;" oninput="ajustarZoomAvatar(this.value)">
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button type="button" class="btn-secondary" style="flex: 1; padding: 10px;" onclick="mostrarSubmenuEdicion(false)">Volver</button>
+            <button type="submit" class="btn-primary" style="flex: 1.5; padding: 10px;">Guardar Cambios</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL 11: HEAD TO HEAD DESDE EL PADRÓN -->
+  <div id="modal-h2h-padron" class="modal-overlay" style="display: none;">
+    <div class="modal-contenido-h2h-padron">
+      <button type="button" class="btn-cerrar-modal-h2h" onclick="cerrarModalH2HPadron()">&times;</button>
+      
+      <div class="h2h-padron-cabecera">
+        <!-- Jugador 1 (Vos) -->
+        <div class="h2h-jugador-col">
+          <div id="h2h-avatar-box-1" class="h2h-avatar-wrapper"></div>
+          <span id="h2h-nombre-1" class="h2h-nombre-label">Jugador 1</span>
+          <div class="h2h-score-pill">
+            <small>VICTORIAS</small>
+            <strong id="h2h-wins-1">0</strong>
+          </div>
+        </div>
+
+        <!-- Centro: VS arriba y tarjeta de EMPATES abajo -->
+        <div class="h2h-centro-col">
+          <span class="h2h-vs-badge">VS</span>
+          <div class="h2h-score-pill h2h-pill-empates">
+            <small>EMPATES</small>
+            <strong id="h2h-empates">0</strong>
+          </div>
+        </div>
+
+        <!-- Jugador 2 (Rival) -->
+        <div class="h2h-jugador-col">
+          <div id="h2h-avatar-box-2" class="h2h-avatar-wrapper"></div>
+          <span id="h2h-nombre-2" class="h2h-nombre-label">Jugador 2</span>
+          <div class="h2h-score-pill">
+            <small>VICTORIAS</small>
+            <strong id="h2h-wins-2">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <h4 id="h2h-padron-titulo-partidos" class="h2h-seccion-titulo">Últimos Enfrentamientos</h4>
+      <div id="h2h-padron-lista-partidos"></div>
     </div>
   </div>
 

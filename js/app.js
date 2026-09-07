@@ -466,6 +466,8 @@ let REALTIME_CANAL = null;
 let ESTILO_PLACA_ACTUAL = "DARK_NEON";
 let ULTIMA_DATA_PLACA = null;
 
+let avatarImgState = { img: null, scale: 1, offsetX: 0, offsetY: 0, isDragging: false, startX: 0, startY: 0 };
+
 function formatearNombre(texto) {
   if (!texto) return '';
   const conectores = ['de', 'del', 'la', 'las', 'los', 'y', 'en'];
@@ -483,12 +485,24 @@ function formatearNombre(texto) {
 }
 
 window.cambiarPestana = function(pestana) {
-  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab-view').forEach(v => {
+    v.classList.remove('active');
+    v.style.display = 'none';
+  });
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
 
+  // Activar la vista correspondiente
   const view = document.getElementById('view-' + pestana);
-  if (view) view.classList.add('active');
-  if (event && event.target) event.target.classList.add('active');
+  if (view) {
+    view.classList.add('active');
+    view.style.display = 'block';
+  }
+
+  // Activar el botón correspondiente por atributo onclick o por evento
+  const botonActivo = document.querySelector(`.tab-btn[onclick*="'${pestana}'"]`);
+  if (botonActivo) {
+    botonActivo.classList.add('active');
+  }
 
   if (pestana === 'historica') renderizarTablaHistorica();
   if (pestana === 'vitrina') renderizarVitrina();
@@ -563,9 +577,155 @@ window.modificarGol = function(inputId, delta) {
 };
 
 // -------------------------------------------------------------
+// MODAL HEAD TO HEAD DEL PADRÓN
+// -------------------------------------------------------------
+window.abrirModalH2HPadron = async function(rivalId) {
+  if (!CUENTA_LOGUEADA) return;
+  
+  const miId = CUENTA_LOGUEADA.id;
+  if (rivalId === miId) return;
+
+  // Obtener datos frescos de la cuenta logueada directamente desde Supabase
+  let avatarMio = CUENTA_LOGUEADA.avatar_url || CUENTA_LOGUEADA.foto || CUENTA_LOGUEADA.avatar;
+  try {
+    const { data: cuentaFresca } = await db
+      .from('cuentas')
+      .select('*')
+      .eq('id', miId)
+      .single();
+    
+    if (cuentaFresca && cuentaFresca.avatar_url) {
+      avatarMio = cuentaFresca.avatar_url;
+    }
+  } catch (e) {
+    console.error("Error al refrescar cuenta:", e);
+  }
+
+  const rival = JUGADORES.find(j => j.id === rivalId);
+  if (!rival) return;
+
+  const partidosMutuos = PARTIDOS.filter(p => 
+    (p.jugador1_id === miId && p.jugador2_id === rivalId) ||
+    (p.jugador1_id === rivalId && p.jugador2_id === miId)
+  );
+
+  let misWins = 0;
+  let rivalWins = 0;
+  let empates = 0;
+
+  partidosMutuos.forEach(p => {
+    const esJ1 = p.jugador1_id === miId;
+    const gMio = esJ1 ? p.goles1 : p.goles2;
+    const gRival = esJ1 ? p.goles2 : p.goles1;
+    if (gMio > gRival) misWins++;
+    else if (gRival > gMio) rivalWins++;
+    else {
+      if (p.penales_g1 !== null && p.penales_g2 !== null && p.penales_g1 !== undefined) {
+        const penM = esJ1 ? p.penales_g1 : p.penales_g2;
+        const penR = esJ1 ? p.penales_g2 : p.penales_g1;
+        if (penM > penR) misWins++; else rivalWins++;
+      } else {
+        empates++;
+      }
+    }
+  });
+
+  // Renderizar tu avatar y nombre
+  document.getElementById('h2h-nombre-1').textContent = CUENTA_LOGUEADA.nombre;
+  document.getElementById('h2h-wins-1').textContent = misWins;
+  
+  // 1. Avatar Usuario Logueado (Tú)
+  const av1 = document.getElementById('h2h-avatar-box-1');
+  if (av1) {
+    if (CUENTA_LOGUEADA.avatar_url && CUENTA_LOGUEADA.avatar_url.startsWith('data:image')) {
+      av1.innerHTML = `<img src="${CUENTA_LOGUEADA.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;">`;
+    } else {
+      av1.innerHTML = `<span style="font-weight:bold; font-size:1.2rem; color:#f0f6fc;">${CUENTA_LOGUEADA.nombre ? CUENTA_LOGUEADA.nombre.charAt(0).toUpperCase() : 'U'}</span>`;
+    }
+  }
+
+  // Renderizar avatar y nombre del rival
+  document.getElementById('h2h-nombre-2').textContent = rival.nombre;
+  document.getElementById('h2h-wins-2').textContent = rivalWins;
+  
+  // 2. Avatar Rival
+  const av2 = document.getElementById('h2h-avatar-box-2');
+  if (av2) {
+    if (rival.avatar_url && rival.avatar_url.startsWith('data:image')) {
+      av2.innerHTML = `<img src="${rival.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;">`;
+    } else {
+      av2.innerHTML = `<span style="font-weight:bold; font-size:1.2rem; color:#f0f6fc;">${rival.nombre ? rival.nombre.charAt(0).toUpperCase() : 'R'}</span>`;
+    }
+  }
+
+  const elEmp = document.getElementById('h2h-empates-num') || document.getElementById('h2h-empates');
+  if (elEmp) elEmp.textContent = empates;
+
+  const contPartidos = document.getElementById('h2h-padron-lista-partidos');
+  if (partidosMutuos.length === 0) {
+    contPartidos.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:20px;">Sin enfrentamientos registrados aún.</p>';
+  } else {
+    contPartidos.innerHTML = partidosMutuos.slice(0, 10).map(p => {
+      const torneoRel = TORNEOS.find(t => t.id === p.torneo_id);
+      const nombreTorneo = torneoRel ? torneoRel.nombre : 'Torneo';
+      const juegoNom = torneoRel?.juego ? `(${torneoRel.juego})` : '';
+      const fecha = new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '');
+      
+      const jLocal = JUGADORES.find(j => j.id === p.jugador1_id)?.nombre || 'J1';
+      const jVisita = JUGADORES.find(j => j.id === p.jugador2_id)?.nombre || 'J2';
+      const escLocal = obtenerEscudoJugador(p.jugador1_id, torneoRel);
+      const escVisita = obtenerEscudoJugador(p.jugador2_id, torneoRel);
+
+      const imgLocalHtml = escLocal ? `<img src="${escLocal}" class="club-badge-micro" style="margin-right:6px;">` : '';
+      const imgVisitaHtml = escVisita ? `<img src="${escVisita}" class="club-badge-micro" style="margin-left:6px;">` : '';
+
+      let scoreHtml = `<span class="score-centro-h2h">${p.goles1} - ${p.goles2}</span>`;
+      if (p.penales_g1 !== null && p.penales_g2 !== null && p.penales_g1 !== undefined) {
+        scoreHtml = `<span class="score-centro-h2h penales">(${p.penales_g1}) ${p.goles1} - ${p.goles2} (${p.penales_g2})</span>`;
+      }
+
+      return `
+        <div class="tarjeta-partido-h2h-pro">
+          <div class="fila-matchup-h2h">
+            <div class="lado-jugador local">${imgLocalHtml}<span>${jLocal}</span></div>
+            <div class="lado-score">${scoreHtml}</div>
+            <div class="lado-jugador visitante"><span>${jVisita}</span>${imgVisitaHtml}</div>
+          </div>
+          <div class="fila-meta-h2h"><span>${nombreTorneo} ${juegoNom} • ${fecha}</span></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('modal-h2h-padron').style.display = 'flex';
+};
+
+window.cerrarModalH2HPadron = function() {
+  document.getElementById('modal-h2h-padron').style.display = 'none';
+};
+
+// -------------------------------------------------------------
 // GESTIÓN DE SESIÓN, LOGIN Y REGISTRO
 // -------------------------------------------------------------
 async function inicializar() {
+  // Desactiva la memoria de scroll de Safari para evitar que centre botones
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+
+  // Reseteo inmediato de la barra de pestañas (la clase real es .tabs)
+  const resetTabs = () => {
+    const contenedorTabs = document.querySelector('.tabs');
+    if (contenedorTabs) {
+      contenedorTabs.scrollLeft = 0;
+    }
+  };
+
+  resetTabs();
+  window.addEventListener('pageshow', resetTabs);
+  setTimeout(resetTabs, 100);
+  setTimeout(resetTabs, 350);
+
   configurarEventos();
 
   const savedCuentaId = localStorage.getItem('mundialitos_cuenta_id');
@@ -576,6 +736,14 @@ async function inicializar() {
       if (cuenta) {
         CUENTA_LOGUEADA = cuenta;
         await cargarComunidadesUsuario();
+        
+        if (typeof cargarTickerPartidosRecientes === 'function') {
+          await cargarTickerPartidosRecientes();
+        }
+
+        setModoTorneo('LIGA');
+        cambiarPestana('jornada');
+        setTimeout(resetTabs, 50);
         return;
       }
     } catch (err) {
@@ -586,6 +754,22 @@ async function inicializar() {
   localStorage.removeItem('mundialitos_cuenta_id');
   localStorage.removeItem('mundialitos_comunidad_id');
   document.getElementById('modal-auth-global').style.display = 'flex';
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch((err) => {
+      console.warn('Error al registrar Service Worker:', err);
+    });
+  }
+
+  window.addEventListener('online', sincronizarPartidosOffline);
+  sincronizarPartidosOffline();
+  setModoTorneo('LIGA');
+
+  setTimeout(() => {
+    if (typeof cargarTickerPartidosRecientes === 'function') {
+      cargarTickerPartidosRecientes();
+    }
+  }, 300);
 }
 
 window.setModoAuth = function(modo) {
@@ -704,7 +888,14 @@ window.cerrarSesion = function() {
 // -------------------------------------------------------------
 async function cargarComunidadesUsuario() {
   if (!CUENTA_LOGUEADA) return;
-  document.getElementById('label-usuario-global').innerText = `👤 ${CUENTA_LOGUEADA.username}`;
+  document.getElementById('label-usuario-global').innerText = CUENTA_LOGUEADA.username;
+  
+  const avatarMini = document.getElementById('user-avatar-mini');
+  if (CUENTA_LOGUEADA.avatar_url) {
+    avatarMini.innerHTML = `<img src="${CUENTA_LOGUEADA.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+  } else {
+    avatarMini.textContent = '👤';
+  }
 
   try {
     const { data: membresias } = await db.from('miembros_comunidad').select('rol, comunidades(*)').eq('cuenta_id', CUENTA_LOGUEADA.id);
@@ -727,11 +918,13 @@ async function cargarComunidadesUsuario() {
 
     ES_ADMIN_ACTUAL = (COMUNIDAD_ACTIVA.rol === 'ADMIN');
     actualizarUIComunidadActiva();
-    suscribirRealtimeComunidad();
     await recargarTodo();
+    suscribirRealtimeComunidad();
   } catch (err) {
     console.error(err);
   }
+
+  await cargarTickerPartidosRecientes();
 }
 
 function suscribirRealtimeComunidad() {
@@ -757,7 +950,10 @@ function suscribirRealtimeComunidad() {
 function actualizarUIComunidadActiva() {
   if (!COMUNIDAD_ACTIVA) return;
   document.getElementById('label-comunidad-activa').innerText = `🌐 ${COMUNIDAD_ACTIVA.nombre}`;
-  document.getElementById('subtitulo-comunidad').innerText = `Comunidad: ${COMUNIDAD_ACTIVA.nombre} ${ES_ADMIN_ACTUAL ? '(Admin)' : ''}`;
+  const subCom = document.getElementById('subtitulo-comunidad');
+  if (subCom) {
+    subCom.innerText = `Comunidad: ${COMUNIDAD_ACTIVA.nombre} ${ES_ADMIN_ACTUAL ? '(Admin)' : ''}`;
+  }
   document.getElementById('label-pin-invitacion').innerText = COMUNIDAD_ACTIVA.pin_invitacion;
 
   const listaMenu = document.getElementById('lista-mis-comunidades');
@@ -927,36 +1123,213 @@ window.ejecutarUnirseComunidad = async function(e) {
 async function recargarTodo() {
   if (!COMUNIDAD_ACTIVA) return;
 
+  const cacheLocal = localStorage.getItem(`cache_data_${COMUNIDAD_ACTIVA.id}`);
+  if (cacheLocal && JUGADORES.length === 0) {
+    try {
+      const parsed = JSON.parse(cacheLocal);
+      JUGADORES = parsed.jugadores || [];
+      TORNEOS = parsed.torneos || [];
+      PARTIDOS = parsed.partidos || [];
+      actualizarSelectsFiltroJuegos();
+      revisarTorneoActivo();
+      poblarChecksCrearTorneo();
+      renderizarPadron();
+      window.cargarTickerPartidosRecientes();
+    } catch (e) {
+      console.warn("Error leyendo caché rápida:", e);
+    }
+  }
+
   try {
-    const { data: mData, error: mErr } = await db
-      .from('miembros_comunidad')
-      .select('cuenta_id, rol, cuentas:cuenta_id(*)')
-      .eq('comunidad_id', COMUNIDAD_ACTIVA.id);
+    const [resMiembros, resTorneos, resPartidos] = await Promise.all([
+      db
+        .from('miembros_comunidad')
+        .select('cuenta_id, rol, cuentas:cuenta_id(id, nombre, username, avatar_url)')
+        .eq('comunidad_id', COMUNIDAD_ACTIVA.id),
+      db
+        .from('torneos')
+        .select('*')
+        .eq('comunidad_id', COMUNIDAD_ACTIVA.id)
+        .order('created_at', { ascending: false }),
+      db
+        .from('partidos')
+        .select('*')
+        .eq('comunidad_id', COMUNIDAD_ACTIVA.id)
+        .order('created_at', { ascending: false })
+    ]);
 
-    if (mErr) throw mErr;
+    if (resMiembros.error) throw resMiembros.error;
 
-    JUGADORES = (mData || []).filter(m => m.cuentas).map(m => ({
+    JUGADORES = (resMiembros.data || []).filter(m => m.cuentas).map(m => ({
       id: m.cuentas.id,
       nombre: formatearNombre(m.cuentas.nombre),
       username: m.cuentas.username,
+      avatar_url: m.cuentas.avatar_url || null,
       rol: m.rol
     }));
 
-    const { data: tData } = await db.from('torneos').select('*').eq('comunidad_id', COMUNIDAD_ACTIVA.id).order('created_at', { ascending: false });
-    TORNEOS = (tData || []).map(t => ({ ...t, nombre: formatearNombre(t.nombre) }));
+    TORNEOS = (resTorneos.data || []).map(t => ({ ...t, nombre: formatearNombre(t.nombre) }));
+    PARTIDOS = resPartidos.data || [];
 
-    const { data: pData } = await db.from('partidos').select('*').eq('comunidad_id', COMUNIDAD_ACTIVA.id).order('created_at', { ascending: false });
-    PARTIDOS = pData || [];
+    localStorage.setItem(`cache_data_${COMUNIDAD_ACTIVA.id}`, JSON.stringify({
+      jugadores: JUGADORES,
+      torneos: TORNEOS,
+      partidos: PARTIDOS
+    }));
 
     actualizarSelectsFiltroJuegos();
     revisarTorneoActivo();
     poblarChecksCrearTorneo();
     poblarSelectsGenerales();
     renderizarPadron();
+    window.cargarTickerPartidosRecientes();
   } catch (err) {
-    console.error(err);
+    console.error("Error recargando datos:", err);
   }
 }
+
+let TICKER_INTERVAL_ID = null;
+let TICKER_CARGANDO = false; // Bandera para evitar bucles infinitos
+
+window.cargarTickerPartidosRecientes = async function() {
+  if (TICKER_CARGANDO) return; // Si ya está cargando, bloquea llamadas duplicadas en ráfaga
+  TICKER_CARGANDO = true;
+
+  const contenedorPadre = document.getElementById('home-ticker-partidos');
+  const track = document.getElementById('ticker-lista-carrusel');
+  
+  if (!contenedorPadre || !track) {
+    TICKER_CARGANDO = false;
+    return;
+  }
+
+  const comunidadActual = window.COMUNIDAD_ACTIVA || (typeof COMUNIDAD_ACTIVA !== 'undefined' ? COMUNIDAD_ACTIVA : null);
+  
+  if (!comunidadActual) {
+    TICKER_CARGANDO = false;
+    setTimeout(window.cargarTickerPartidosRecientes, 200);
+    return;
+  }
+
+  try {
+    const { data: partidos, error } = await db
+      .from('partidos')
+      .select(`
+        *,
+        jugador1:jugador1_id(nombre),
+        jugador2:jugador2_id(nombre),
+        torneo:torneo_id(id, nombre, equipos_participantes)
+      `)
+      .eq('comunidad_id', comunidadActual.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    if (!partidos || partidos.length === 0) {
+      contenedorPadre.style.display = 'none';
+      TICKER_CARGANDO = false;
+      return;
+    }
+
+    contenedorPadre.style.display = 'block';
+
+    const renderCard = (p, index) => {
+      const j1Nombre = p.jugador1 ? p.jugador1.nombre : 'J1';
+      const j2Nombre = p.jugador2 ? p.jugador2.nombre : 'J2';
+      const torneoRel = p.torneo || TORNEOS.find(t => t.id === p.torneo_id);
+      const torneoNombre = torneoRel ? torneoRel.nombre : 'Competencia';
+
+      const esc1 = obtenerEscudoJugador(p.jugador1_id, torneoRel);
+      const esc2 = obtenerEscudoJugador(p.jugador2_id, torneoRel);
+
+      const img1Html = esc1 ? `<img src="${esc1}" class="ticker-badge-escudo" alt="Club">` : '';
+      const img2Html = esc2 ? `<img src="${esc2}" class="ticker-badge-escudo" alt="Club">` : '';
+
+      let scoreTxt = `<span class="score-principal">${p.goles1} - ${p.goles2}</span>`;
+      if (p.penales_g1 !== null && p.penales_g2 !== null && p.penales_g1 !== undefined) {
+        scoreTxt = `
+          <small class="score-penal">(${p.penales_g1})</small>
+          <span class="score-principal">${p.goles1} - ${p.goles2}</span>
+          <small class="score-penal">(${p.penales_g2})</small>
+        `;
+      }
+
+      const fechaFormateada = new Date(p.created_at).toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit'
+      });
+
+      const badgeOrden = (index === 0)
+        ? `<span class="tag-orden-ticker destacado">⚡ ÚLTIMO</span>`
+        : `<span class="tag-orden-ticker">#${index + 1}</span>`;
+
+      return `
+        <div class="ticker-card-item">
+          <div class="ticker-card-matchup">
+            <div class="ticker-lado-jugador">
+              ${img1Html}
+              <span class="ticker-nombre-txt" title="${j1Nombre}">${j1Nombre}</span>
+            </div>
+            <span class="ticker-card-score">${scoreTxt}</span>
+            <div class="ticker-lado-jugador visitante">
+              <span class="ticker-nombre-txt" title="${j2Nombre}">${j2Nombre}</span>
+              ${img2Html}
+            </div>
+          </div>
+          <div class="ticker-card-meta">
+            ${badgeOrden}
+            <span>${torneoNombre} • ${fechaFormateada}</span>
+          </div>
+        </div>
+      `;
+    };
+
+    // 1. Tomamos los partidos originales y clonamos los 3 primeros al final
+    const clones = partidos.slice(0, 3);
+    const listaRender = [...partidos, ...clones];
+
+    // 2. Renderizamos la lista completa con los duplicados al final
+    track.innerHTML = listaRender
+      .map((p, idx) => renderCard(p, idx % partidos.length))
+      .join('');
+
+    if (TICKER_INTERVAL_ID) clearInterval(TICKER_INTERVAL_ID);
+
+    let currentCardIdx = 0;
+
+    TICKER_INTERVAL_ID = setInterval(() => {
+      if (!track) return;
+      const cards = track.querySelectorAll('.ticker-card-item');
+      if (cards.length === 0) return;
+
+      currentCardIdx++;
+
+      // Desplazamiento fluido hacia la siguiente tarjeta
+      track.scrollTo({
+        left: cards[currentCardIdx].offsetLeft - track.offsetLeft,
+        behavior: 'smooth'
+      });
+
+      // Cuando llega al bloque de los duplicados, vuelve al inicio sin que se note
+      if (currentCardIdx >= partidos.length) {
+        setTimeout(() => {
+          track.scrollTo({
+            left: 0,
+            behavior: 'instant'
+          });
+          currentCardIdx = 0;
+        }, 600); // Espera a que termine la animación smooth antes de resetear a 0
+      }
+    }, 3500);
+
+  } catch (err) {
+    console.error('Error al cargar partidos recientes:', err.message);
+    contenedorPadre.style.display = 'none';
+  } finally {
+    TICKER_CARGANDO = false; // Liberamos el bloqueo al terminar
+  }
+};
 
 function actualizarSelectsFiltroJuegos() {
   const juegosSet = new Set();
@@ -1246,112 +1619,14 @@ function avanzarCronogramaCompetencia() {
 }
 
 function poblarChecksCrearTorneo() {
-  const container = document.getElementById('lista-check-jugadores');
-  container.innerHTML = JUGADORES.map(j => `
-    <label class="checkbox-item">
-      <input type="checkbox" name="participantes_check" value="${j.id}" onchange="actualizarSeccionAsignacionEquipos()">
-      ${j.nombre}
-    </label>
-  `).join('');
+  const labelResumen = document.getElementById('label-resumen-participantes');
+  if (labelResumen) {
+    const cant = PARTICIPANTES_SELECCIONADOS_TEMP.length;
+    labelResumen.textContent = cant === 0 ? 'Seleccionar del Padrón (0 elegidos)' : `${cant} participante${cant > 1 ? 's' : ''} seleccionado${cant > 1 ? 's' : ''}`;
+    labelResumen.style.color = cant > 0 ? '#3fb950' : '#f0f6fc';
+  }
   actualizarSeccionAsignacionEquipos();
 }
-
-window.actualizarSeccionAsignacionEquipos = function() {
-  const checked = Array.from(document.querySelectorAll('input[name="participantes_check"]:checked'));
-  const boxEquipos = document.getElementById('box-seleccion-equipos');
-  const listaInputs = document.getElementById('lista-inputs-equipos');
-
-  if (checked.length === 0) {
-    boxEquipos.style.display = 'none';
-    return;
-  }
-
-  boxEquipos.style.display = 'block';
-
-  listaInputs.innerHTML = checked.map((c, idx) => {
-    const jugador = JUGADORES.find(j => j.id === c.value);
-    const defaultClub = BASE_CLUBES[idx % BASE_CLUBES.length];
-
-    if (!EQUIPOS_SELECCIONADOS_CREACION[c.value]) {
-      EQUIPOS_SELECCIONADOS_CREACION[c.value] = defaultClub;
-    }
-
-    const clubActual = EQUIPOS_SELECCIONADOS_CREACION[c.value];
-
-    return `
-      <div class="club-select-row">
-        <strong style="min-width:65px; font-size:0.8rem;">${jugador ? jugador.nombre : 'J'}:</strong>
-        <img id="preview-escudo-input-${c.value}" src="${clubActual.url}" class="club-badge-micro">
-        <div class="input-dropdown-wrapper">
-          <input type="text" id="input-buscar-club-${c.value}" class="club-input-search" value="${formatearNombre(clubActual.name)}" 
-                 placeholder="Escribí para buscar club..." autocomplete="off"
-                 oninput="filtrarDropdownClubes('${c.value}', this.value)" 
-                 onfocus="filtrarDropdownClubes('${c.value}', this.value)">
-          <div id="dropdown-clubes-${c.value}" class="club-dropdown-floating"></div>
-        </div>
-      </div>
-    `;
-  }).join('');
-};
-
-window.filtrarDropdownClubes = function(jId, query) {
-  const drop = document.getElementById(`dropdown-clubes-${jId}`);
-  const qNorm = normalizarTxt(query);
-
-  let coincidencias = BASE_CLUBES.filter(c => normalizarTxt(c.name).includes(qNorm));
-
-  if (coincidencias.length === 0) {
-    drop.innerHTML = '<div style="padding:10px 14px; font-size:0.78rem; color:var(--text-muted); text-align:center;">Sin coincidencias (nombre personalizado)</div>';
-    drop.style.display = 'flex';
-    EQUIPOS_SELECCIONADOS_CREACION[jId] = { name: formatearNombre(query), url: '' };
-    return;
-  }
-
-  coincidencias.sort((a, b) => {
-    const aName = normalizarTxt(a.name);
-    const bName = normalizarTxt(b.name);
-    
-    if (aName === qNorm && bName !== qNorm) return -1;
-    if (bName === qNorm && aName !== qNorm) return 1;
-
-    const aEmpieza = aName.startsWith(qNorm);
-    const bEmpieza = bName.startsWith(qNorm);
-    if (aEmpieza && !bEmpieza) return -1;
-    if (!aEmpieza && bEmpieza) return 1;
-
-    return a.name.localeCompare(b.name);
-  });
-
-  coincidencias = coincidencias.slice(0, 20);
-
-  drop.innerHTML = coincidencias.map(c => `
-    <div class="club-dropdown-item" onclick="seleccionarClubParaJugador('${jId}', '${c.name.replace(/'/g, "\\'")}', '${c.url}')">
-      <img src="${c.url}" alt="${c.name}" onerror="this.style.display='none'">
-      <div class="club-dropdown-info">
-        <span>${formatearNombre(c.name)}</span>
-      </div>
-    </div>
-  `).join('');
-
-  drop.style.display = 'flex';
-};
-
-window.seleccionarClubParaJugador = function(jId, name, url) {
-  document.getElementById(`input-buscar-club-${jId}`).value = formatearNombre(name);
-  const img = document.getElementById(`preview-escudo-input-${jId}`);
-  if (img) {
-    img.src = url;
-    img.style.display = url ? 'inline-block' : 'none';
-  }
-  document.getElementById(`dropdown-clubes-${jId}`).style.display = 'none';
-  EQUIPOS_SELECCIONADOS_CREACION[jId] = { name: formatearNombre(name), url };
-};
-
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.club-select-row')) {
-    document.querySelectorAll('.club-dropdown-floating').forEach(d => d.style.display = 'none');
-  }
-});
 
 function normalizarTxt(t) {
   return (t || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
@@ -1368,9 +1643,7 @@ function poblarSelectsPartidoActivo(participantesIds) {
   actualizarEscudoMatchup();
 }
 
-function poblarSelectsGenerales() {
-  // Manejo dinámico según requerimiento
-}
+function poblarSelectsGenerales() {}
 
 // -------------------------------------------------------------
 // CÁLCULO DE ESTADÍSTICAS (PENALES SUMAN VICTORIA)
@@ -1450,6 +1723,31 @@ function renderizarTablaJornada() {
   }).join('');
 
   renderizarListaPartidosJornada(partidosDeHoy);
+}
+
+function renderizarTablaHistorica() {
+  const filtroJuego = document.getElementById('filtro-juego-historica')?.value || 'TODOS';
+  
+  let partidosFiltrados = PARTIDOS;
+  if (filtroJuego !== 'TODOS') {
+    const torneosIdsDelJuego = TORNEOS.filter(t => t.juego === filtroJuego).map(t => t.id);
+    partidosFiltrados = PARTIDOS.filter(p => torneosIdsDelJuego.includes(p.torneo_id));
+  }
+
+  const ranking = calcularEstadisticas(partidosFiltrados);
+  const tbody = document.getElementById('body-tabla-historica');
+  tbody.innerHTML = ranking.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>
+        <span class="player-user-cell" title="${r.username}">${r.username}</span>
+      </td>
+      <td>${r.pj}</td><td>${r.pg}</td><td>${r.pe}</td><td>${r.pp}</td>
+      <td>${r.gf}</td><td>${r.gc}</td>
+      <td>${r.dif > 0 ? '+' + r.dif : r.dif}</td>
+      <td style="color:#58a6ff; font-weight:bold;">${r.pts}</td>
+    </tr>
+  `).join('');
 }
 
 function renderizarLlavesCompetencia() {
@@ -1733,31 +2031,6 @@ window.guardarEdicionPartido = async function(e) {
   }
 };
 
-function renderizarTablaHistorica() {
-  const filtroJuego = document.getElementById('filtro-juego-historica')?.value || 'TODOS';
-  
-  let partidosFiltrados = PARTIDOS;
-  if (filtroJuego !== 'TODOS') {
-    const torneosIdsDelJuego = TORNEOS.filter(t => t.juego === filtroJuego).map(t => t.id);
-    partidosFiltrados = PARTIDOS.filter(p => torneosIdsDelJuego.includes(p.torneo_id));
-  }
-
-  const ranking = calcularEstadisticas(partidosFiltrados);
-  const tbody = document.getElementById('body-tabla-historica');
-  tbody.innerHTML = ranking.map((r, i) => `
-    <tr>
-      <td>${i + 1}</td>
-      <td>
-        <span class="player-user-cell" title="${r.username}">${r.username}</span>
-      </td>
-      <td>${r.pj}</td><td>${r.pg}</td><td>${r.pe}</td><td>${r.pp}</td>
-      <td>${r.gf}</td><td>${r.gc}</td>
-      <td>${r.dif > 0 ? '+' + r.dif : r.dif}</td>
-      <td style="color:#58a6ff; font-weight:bold;">${r.pts}</td>
-    </tr>
-  `).join('');
-}
-
 function renderizarVitrina() {
   const palmaresMobileBox = document.getElementById('vitrina-palmares-movil');
   const bodyTablaPalmares = document.getElementById('body-tabla-palmares');
@@ -1783,7 +2056,6 @@ function renderizarVitrina() {
 
   const rankingPalmares = Object.values(copasPorJugador).sort((a, b) => b.total - a.total || b.ligas - a.ligas);
 
-  // 1. Render para Desktop (Tabla estilo columna derecha de Promiedos)
   if (bodyTablaPalmares) {
     bodyTablaPalmares.innerHTML = rankingPalmares.map(p => `
       <tr class="fila-ranking-promiedos" onclick="abrirModalTitulos('${p.id}')">
@@ -1797,7 +2069,6 @@ function renderizarVitrina() {
     `).join('');
   }
 
-  // 2. Render para Móviles (Tarjetas deslizables horizontales)
   if (palmaresMobileBox) {
     palmaresMobileBox.innerHTML = rankingPalmares.map(p => `
       <div class="palmares-card" onclick="abrirModalTitulos('${p.id}')">
@@ -1810,7 +2081,6 @@ function renderizarVitrina() {
     `).join('');
   }
 
-  // 3. Render de Ediciones Finalizadas (Columna izquierda)
   if (torneosCerrados.length === 0) {
     edicionesBox.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:16px;">No hay torneos finalizados para este filtro.</p>';
     return;
@@ -1890,7 +2160,6 @@ window.guardarTrofeoTorneoFinalizado = async function(e) {
     return;
   }
 
-  // Conversión y optimización de imagen en Canvas
   const trofeoBase64 = await new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -1900,7 +2169,7 @@ window.guardarTrofeoTorneoFinalizado = async function(e) {
         const maxDim = 800;
         let w = img.width, h = img.height;
         if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
-        else if (h > maxDim) { h = Math.round((h * maxDim) / h); h = maxDim; }
+        else if (h > maxDim) { h = Math.round((w * maxDim) / h); h = maxDim; }
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL('image/png'));
@@ -2006,7 +2275,7 @@ window.guardarEdicionTorneo = async function(e) {
           const maxDim = 800;
           let w = img.width, h = img.height;
           if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
-          else if (h > maxDim) { h = Math.round((h * maxDim) / h); h = maxDim; }
+          else if (h > maxDim) { h = Math.round((w * maxDim) / h); h = maxDim; }
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
           resolve(canvas.toDataURL('image/png'));
@@ -2027,32 +2296,71 @@ window.guardarEdicionTorneo = async function(e) {
   }
 };
 
-function renderizarPadron() {
-  const lista = document.getElementById('lista-padron-jugadores');
-  if (!lista) return;
+window.toggleVisibilidadPinPerfil = function() {
+  const inputPin = document.getElementById('edit-perfil-pin');
+  const iconoOjo = document.getElementById('icono-ojo-pin');
+  if (!inputPin) return;
 
-  if (JUGADORES.length === 0) {
-    lista.innerHTML = '<li style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:10px;">No hay miembros registrados en esta comunidad.</li>';
-    return;
+  if (inputPin.type === 'password') {
+    inputPin.type = 'text';
+    if (iconoOjo) iconoOjo.textContent = '🙈';
+  } else {
+    inputPin.type = 'password';
+    if (iconoOjo) iconoOjo.textContent = '👁️';
   }
+};
 
-  lista.innerHTML = JUGADORES.map(j => {
-    const botonExpulsar = (ES_ADMIN_ACTUAL && j.id !== CUENTA_LOGUEADA.id)
-      ? `<button class="btn-danger-sm" onclick="expulsarMiembro('${j.id}', '${j.nombre}')">Expulsar</button>`
-      : '';
+// -------------------------------------------------------------
+// SECCIÓN PADRÓN
+// -------------------------------------------------------------
+window.renderizarPadron = function() {
+  try {
+    const lista = document.getElementById('lista-padron-jugadores');
+    if (!lista) return;
 
-    return `
-      <li class="padron-item">
-        <div>
-          <strong>${j.nombre}</strong>
-          <span style="color:var(--text-muted); font-size:0.75rem; margin-left:6px;">${j.username}</span>
-          <small style="color:${j.rol === 'ADMIN' ? 'var(--gold)' : 'var(--text-muted)'}; margin-left:6px;">${j.rol === 'ADMIN' ? '👑 Admin' : 'Miembro'}</small>
-        </div>
-        ${botonExpulsar}
-      </li>
-    `;
-  }).join('');
-}
+    if (!JUGADORES || JUGADORES.length === 0) {
+      lista.innerHTML = '<li style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:10px;">No hay miembros registrados en esta comunidad.</li>';
+      return;
+    }
+
+    lista.innerHTML = JUGADORES.map(j => {
+      const avatarHtml = (j && j.avatar_url) 
+        ? `<img src="${j.avatar_url}" alt="${j.nombre || ''}">` 
+        : `<span>${j && j.nombre ? j.nombre.charAt(0) : '?'}</span>`;
+
+      const miId = CUENTA_LOGUEADA ? CUENTA_LOGUEADA.id : null;
+      const esMio = (miId && j.id === miId);
+      
+      const botonExpulsar = (ES_ADMIN_ACTUAL && !esMio)
+        ? `<button type="button" class="btn-danger-sm" onclick="event.stopPropagation(); expulsarMiembro('${j.id}', '${j.nombre}')">Expulsar</button>`
+        : '';
+
+      const clickAttr = !esMio ? `onclick="abrirModalH2HPadron('${j.id}')"` : '';
+      const claseClic = !esMio ? 'padron-tarjeta-clicable' : '';
+
+      const usuarioLimpio = j.username ? (j.username.startsWith('@') ? j.username : `@${j.username}`) : '';
+
+      return `
+        <li class="padron-item ${claseClic}" ${clickAttr}>
+          <div class="padron-item-info">
+            <div class="padron-avatar-mini">${avatarHtml}</div>
+            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <strong>${j.nombre || 'Sin nombre'}</strong>
+              <span style="color:var(--text-muted); font-size:0.75rem;">${usuarioLimpio}</span>
+              <small style="color: ${j.rol === 'ADMIN' ? 'var(--gold)' : 'var(--text-muted)'}; margin-left:4px;">
+                ${j.rol === 'ADMIN' ? 'Admin' : 'Miembro'}
+              </small>
+            </div>
+          </div>
+          ${botonExpulsar}
+        </li>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error("Error al renderizar el Padrón:", error);
+  }
+};
 
 window.expulsarMiembro = async function(cuentaId, nombre) {
   if (!ES_ADMIN_ACTUAL) return;
@@ -2506,7 +2814,7 @@ async function generarPlacaHistoria916(nombreTorneo, formato, campeon, subcampeo
 }
 
 // -------------------------------------------------------------
-// CONTROL DE PLACA (CERRAR Y GUARDAR EN FOTOS)
+// CONTROL DE PLACA
 // -------------------------------------------------------------
 window.cerrarModalPlaca = function() {
   const modal = document.getElementById('modal-placa');
@@ -2537,7 +2845,7 @@ window.descargarPlaca = async function() {
     }
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     if (isIOS) {
       const dataUrl = canvas.toDataURL('image/png');
@@ -2560,9 +2868,41 @@ window.descargarPlaca = async function() {
   }, 'image/png');
 };
 
-// =============================================================
-// REGISTRO DE EVENTOS PRINCIPALES
-// =============================================================
+function guardarPartidoOffline(partidoData) {
+  const cola = JSON.parse(localStorage.getItem('mundialitos_offline_queue') || '[]');
+  const partidoLocal = {
+    ...partidoData,
+    id: 'offline_' + Date.now(),
+    created_at: new Date().toISOString(),
+    es_offline: true
+  };
+  cola.push(partidoLocal);
+  localStorage.setItem('mundialitos_offline_queue', JSON.stringify(cola));
+
+  PARTIDOS.unshift(partidoLocal);
+  revisarTorneoActivo();
+  alert('⚡ Sin conexión: El partido se guardó en el dispositivo y se sincronizará automáticamente al volver internet.');
+}
+
+async function sincronizarPartidosOffline() {
+  if (!navigator.onLine) return;
+  const cola = JSON.parse(localStorage.getItem('mundialitos_offline_queue') || '[]');
+  if (cola.length === 0) return;
+
+  const partidosParaSubir = cola.map(({ id, es_offline, ...p }) => p);
+
+  try {
+    const { error } = await db.from('partidos').insert(partidosParaSubir);
+    if (error) throw error;
+
+    localStorage.removeItem('mundialitos_offline_queue');
+    console.log(`✅ Sincronizados ${partidosParaSubir.length} partidos offline.`);
+    await recargarTodo();
+  } catch (err) {
+    console.error('Error al sincronizar cola offline:', err);
+  }
+}
+
 function configurarEventos() {
   const formTorneo = document.getElementById('form-crear-torneo');
   if (formTorneo) {
@@ -2570,10 +2910,16 @@ function configurarEventos() {
       e.preventDefault();
       if (!COMUNIDAD_ACTIVA) return;
 
-      const nombre = formatearNombre(document.getElementById('torneo-nombre').value);
+      let nombre = formatearNombre(document.getElementById('torneo-nombre').value);
+      if (MODO_TORNEO_NUEVO === 'MANO_A_MANO' && SUBTIPO_MANO_A_MANO === 'AMISTOSO') {
+        nombre = 'Amistoso';
+      } else if (!nombre) {
+        nombre = 'Competencia';
+      }
       const juegoSeleccionado = document.getElementById('torneo-juego').value || 'EA FC 26';
       const fileInput = document.getElementById('torneo-trofeo-file');
-      const checks = Array.from(document.querySelectorAll('input[name="participantes_check"]:checked')).map(c => c.value);
+      
+      const checks = [...PARTICIPANTES_SELECCIONADOS_TEMP];
 
       if (checks.length < 2) {
         alert('Debes seleccionar al menos 2 participantes.');
@@ -2614,7 +2960,7 @@ function configurarEventos() {
               const maxDim = 800;
               let w = img.width, h = img.height;
               if (w > h && w > maxDim) { h = Math.round((h * maxDim) / w); w = maxDim; }
-              else if (h > maxDim) { h = Math.round((h * maxDim) / h); h = maxDim; }
+              else if (h > maxDim) { h = Math.round((w * maxDim) / h); h = maxDim; }
               canvas.width = w; canvas.height = h;
               canvas.getContext('2d').drawImage(img, 0, 0, w, h);
               resolve(canvas.toDataURL('image/png'));
@@ -2639,9 +2985,15 @@ function configurarEventos() {
         }]);
 
         if (error) throw error;
+        
         document.getElementById('torneo-nombre').value = '';
         fileInput.value = '';
         EQUIPOS_SELECCIONADOS_CREACION = {};
+        
+        PARTICIPANTES_SELECCIONADOS_TEMP = [];
+        const labelResumen = document.getElementById('label-resumen-participantes');
+        if (labelResumen) labelResumen.textContent = 'Seleccionar del Padrón (0 elegidos)';
+
         await recargarTodo();
       } catch (err) {
         alert('Error: ' + err.message);
@@ -2683,21 +3035,32 @@ function configurarEventos() {
         return;
       }
 
-      try {
-        const { error } = await db.from('partidos').insert([{
-          torneo_id: TORNEO_ACTIVO.id,
-          jugador1_id: j1,
-          jugador2_id: j2,
-          goles1: g1,
-          goles2: g2,
-          fase: TORNEO_ACTIVO.formato === 'LIGA' ? 'REGULAR' : fase,
-          penales_g1: penG1,
-          penales_g2: penG2,
-          penales_ganador_id: penGanadorId,
-          comunidad_id: COMUNIDAD_ACTIVA.id
-        }]);
+      const partidoPayload = {
+        torneo_id: TORNEO_ACTIVO.id,
+        jugador1_id: j1,
+        jugador2_id: j2,
+        goles1: g1,
+        goles2: g2,
+        fase: TORNEO_ACTIVO.formato === 'LIGA' ? 'REGULAR' : fase,
+        penales_g1: penG1,
+        penales_g2: penG2,
+        penales_ganador_id: penGanadorId,
+        comunidad_id: COMUNIDAD_ACTIVA.id
+      };
 
+      if (!navigator.onLine) {
+        guardarPartidoOffline(partidoPayload);
+        document.getElementById('p-g1').value = '0';
+        document.getElementById('p-g2').value = '0';
+        document.getElementById('check-hubo-penales').checked = false;
+        togglePenalesInputs();
+        return;
+      }
+
+      try {
+        const { error } = await db.from('partidos').insert([partidoPayload]);
         if (error) throw error;
+
         document.getElementById('p-g1').value = '0';
         document.getElementById('p-g2').value = '0';
         document.getElementById('check-hubo-penales').checked = false;
@@ -2705,14 +3068,17 @@ function configurarEventos() {
 
         await recargarTodo();
 
-        // NUNCA finaliza automáticamente en modalidad LIGA
         if (TORNEO_ACTIVO.formato !== 'LIGA' && (fase === 'FINAL' || fase === 'FINAL_VUELTA')) {
           setTimeout(() => {
             finalizarTorneoActual(true);
           }, 400);
         }
       } catch (err) {
-        alert('Error: ' + err.message);
+        guardarPartidoOffline(partidoPayload);
+        document.getElementById('p-g1').value = '0';
+        document.getElementById('p-g2').value = '0';
+        document.getElementById('check-hubo-penales').checked = false;
+        togglePenalesInputs();
       }
     });
   }
@@ -2761,7 +3127,6 @@ window.cargarHistorialJugadorPromiedos = function(jugadorId, jugadorNombre) {
   const s3 = document.getElementById('historial-vista-ficha-completa');
   if (s3) s3.style.display = 'none';
 
-  // Título sin "(TOTAL)"
   document.getElementById('historial-detalle-header').textContent = `HISTORIAL DE ${jugadorNombre.toUpperCase()}`;
 
   const tbody = document.getElementById('body-tabla-historial-promiedos');
@@ -2806,7 +3171,6 @@ window.cargarHistorialJugadorPromiedos = function(jugadorId, jugadorNombre) {
     }
   });
 
-  // Ordenar por diferencia (PG - PP) de mayor a menor; ante igualdad desempata por más partidos jugados (PJ)
   const lista = Object.values(rivalesMap).sort((a, b) => {
     const difA = a.pg - a.pp;
     const difB = b.pg - b.pp;
@@ -2855,7 +3219,6 @@ window.mostrarFichaCompleta = function(rivalId) {
 
   const partidosCronologicos = dataRival.partidos.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-  // 1. MAYOR GOLEADA ABSOLUTA DE LA HISTORIA ENTRE AMBOS: "5 - 0 (Julián)"
   let maxDif = 0;
   let txtScoreGoleada = '-';
   let ganadorGoleadaNom = '';
@@ -2863,7 +3226,7 @@ window.mostrarFichaCompleta = function(rivalId) {
 
   partidosCronologicos.forEach(p => {
     const dif = Math.abs(p.goles1 - p.goles2);
-    if (dif > maxDif) {
+    if (dif >= maxDif && dif > 0) {
       maxDif = dif;
       txtScoreGoleada = p.goles1 > p.goles2 ? `${p.goles1} - ${p.goles2}` : `${p.goles2} - ${p.goles1}`;
       const ganadorId = p.goles1 > p.goles2 ? p.jugador1_id : p.jugador2_id;
@@ -2891,7 +3254,6 @@ window.mostrarFichaCompleta = function(rivalId) {
     }
   }
 
-  // 2. RACHA ACTUAL VIVA: "Julián (2)"
   let rachaVictorias = 0;
   let duenoRachaId = null;
   const ultimosPartidos = [...partidosCronologicos].reverse();
@@ -2927,14 +3289,12 @@ window.mostrarFichaCompleta = function(rivalId) {
     txtRachaEl.innerHTML = `<span style="color:${colorDueno};">${nomDueno}</span> <span style="color:#f0f6fc;">(${rachaVictorias})</span>`;
   }
 
-  // Guardar lista completa en orden reciente
   window.H2H_FICHA_ACTIVA = {
     jugadorId,
     rivalId,
     partidos: partidosCronologicos.reverse()
   };
 
-  // 3. SELECTOR DE FILTROS ABAJO
   const contFiltros = document.getElementById('ficha-filtros-h2h');
   contFiltros.innerHTML = `
     <button type="button" class="btn-filtro-h2h active" onclick="window.filtrarPartidosFicha('TODOS', this)">Todos (${dataRival.pj})</button>
@@ -2942,14 +3302,68 @@ window.mostrarFichaCompleta = function(rivalId) {
     <button type="button" class="btn-filtro-h2h" onclick="window.filtrarPartidosFicha('${rivalId}', this)">Ganó ${dataRival.nombre} (${dataRival.pp})</button>
   `;
 
+  const mesesDisponibles = [];
+  dataRival.partidos.forEach(p => {
+    const fecha = new Date(p.created_at);
+    const mesAnio = fecha.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const mesFormateado = mesAnio.charAt(0).toUpperCase() + mesAnio.slice(1);
+    if (!mesesDisponibles.includes(mesFormateado)) {
+      mesesDisponibles.push(mesFormateado);
+    }
+  });
+
+  const selectMes = document.getElementById('select-mes-h2h');
+  if (selectMes) {
+    selectMes.innerHTML = `<option value="TODOS">Todos los Meses</option>` + 
+      mesesDisponibles.map(m => `<option value="${m}">${m}</option>`).join('');
+    selectMes.value = "TODOS";
+  }
+
   window.renderizarListaPartidosFicha(window.H2H_FICHA_ACTIVA.partidos);
 };
 
-// Renderizar la lista filtrada de enfrentamientos
+window.filtrarPartidosFichaMesDropdown = function(mesSeleccionado) {
+  if (!window.H2H_FICHA_ACTIVA) return;
+
+  document.querySelectorAll('.btn-filtro-h2h').forEach(b => b.classList.remove('active'));
+  const btnTodos = document.querySelector('.btn-filtro-h2h');
+  if (btnTodos) btnTodos.classList.add('active');
+
+  if (mesSeleccionado === 'TODOS') {
+    window.renderizarListaPartidosFicha(window.H2H_FICHA_ACTIVA.partidos);
+    return;
+  }
+
+  const filtrados = window.H2H_FICHA_ACTIVA.partidos.filter(p => {
+    const fecha = new Date(p.created_at);
+    const mesAnio = fecha.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const formateado = mesAnio.charAt(0).toUpperCase() + mesAnio.slice(1);
+    return formateado === mesSeleccionado;
+  });
+
+  window.renderizarListaPartidosFicha(filtrados);
+};
+
+window.filtrarPartidosFichaMes = function(mesAnioStr, btnEl) {
+  document.querySelectorAll('.btn-filtro-h2h').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+
+  const filtrados = window.H2H_FICHA_ACTIVA.partidos.filter(p => {
+    const fecha = new Date(p.created_at);
+    const mesAnio = fecha.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const formateado = mesAnio.charAt(0).toUpperCase() + mesAnio.slice(1);
+    return formateado === mesAnioStr;
+  });
+
+  window.renderizarListaPartidosFicha(filtrados);
+};
+
 window.renderizarListaPartidosFicha = function(lista) {
   const contPartidos = document.getElementById('ficha-lista-partidos');
+  if (!contPartidos) return;
+  
   if (!lista || lista.length === 0) {
-    contPartidos.innerHTML = `<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:16px;">Sin partidos para este filtro.</p>`;
+    contPartidos.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:10px;">Sin partidos para este filtro.</p>';
     return;
   }
 
@@ -2998,7 +3412,6 @@ window.renderizarListaPartidosFicha = function(lista) {
   }).join('');
 };
 
-// Filtrar al clickear los botones
 window.filtrarPartidosFicha = function(criterio, btnEl) {
   if (!window.H2H_FICHA_ACTIVA) return;
 
@@ -3027,17 +3440,508 @@ window.filtrarPartidosFicha = function(criterio, btnEl) {
   window.renderizarListaPartidosFicha(filtrados);
 };
 
-// Función para scrollear y resaltar suavemente el partido de la mayor goleada
 window.scrollearAPartido = function(partidoId) {
   const el = document.getElementById(`partido-h2h-${partidoId}`);
   if (!el) return;
 
   el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  
   el.classList.add('resaltar-goleada');
   setTimeout(() => {
     el.classList.remove('resaltar-goleada');
   }, 2200);
 };
+
+// -------------------------------------------------------------
+// GESTIÓN DE PERFIL Y VALIDACIÓN DE PIN
+// -------------------------------------------------------------
+window.mostrarSubmenuEdicion = function(abrir) {
+  const vResumen = document.getElementById('perfil-vista-resumen');
+  const vValidar = document.getElementById('perfil-vista-validar-pin');
+  const vEdicion = document.getElementById('perfil-vista-edicion');
+
+  if (abrir) {
+    vResumen.style.display = 'none';
+    vEdicion.style.display = 'none';
+    vValidar.style.display = 'flex';
+    const inputPin = document.getElementById('check-pin-acceso');
+    inputPin.value = '';
+    setTimeout(() => inputPin.focus(), 150);
+  } else {
+    vValidar.style.display = 'none';
+    vEdicion.style.display = 'none';
+    vResumen.style.display = 'flex';
+  }
+};
+
+window.confirmarPinParaEditar = function(e) {
+  e.preventDefault();
+  if (!CUENTA_LOGUEADA) return;
+
+  const pinIngresado = document.getElementById('check-pin-acceso').value.trim();
+
+  if (pinIngresado !== CUENTA_LOGUEADA.pin_seguridad) {
+    alert('PIN incorrecto. No se puede acceder a la edición.');
+    document.getElementById('check-pin-acceso').value = '';
+    return;
+  }
+
+  document.getElementById('perfil-vista-validar-pin').style.display = 'none';
+  document.getElementById('perfil-vista-edicion').style.display = 'flex';
+
+  document.getElementById('edit-perfil-username').value = CUENTA_LOGUEADA.username.replace(/^@/, '');
+  document.getElementById('edit-perfil-pin').value = CUENTA_LOGUEADA.pin_seguridad || '';
+};
+
+window.cancelarValidacionPin = function() {
+  document.getElementById('perfil-vista-validar-pin').style.display = 'none';
+  document.getElementById('perfil-vista-resumen').style.display = 'flex';
+};
+
+window.abrirModalPerfilUsuario = function() {
+  if (!CUENTA_LOGUEADA) return;
+
+  mostrarSubmenuEdicion(false);
+
+  document.getElementById('perfil-nombre-txt').textContent = CUENTA_LOGUEADA.nombre;
+  document.getElementById('perfil-username-txt').textContent = CUENTA_LOGUEADA.username;
+  document.getElementById('edit-perfil-file').value = '';
+  document.getElementById('box-recorte-avatar').style.display = 'none';
+
+  const avatarMini = document.getElementById('user-avatar-mini');
+  const avatarBig = document.getElementById('perfil-avatar-big');
+  
+  if (CUENTA_LOGUEADA.avatar_url) {
+    avatarMini.innerHTML = `<img src="${CUENTA_LOGUEADA.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    avatarBig.innerHTML = `<img src="${CUENTA_LOGUEADA.avatar_url}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+  } else {
+    avatarMini.textContent = '👤';
+    avatarBig.textContent = '👤';
+  }
+
+  const misPartidos = PARTIDOS.filter(p => p.jugador1_id === CUENTA_LOGUEADA.id || p.jugador2_id === CUENTA_LOGUEADA.id);
+  let pj = 0, pg = 0, pe = 0, pp = 0;
+
+  misPartidos.forEach(p => {
+    pj++;
+    const esJ1 = (p.jugador1_id === CUENTA_LOGUEADA.id);
+    const gFav = esJ1 ? p.goles1 : p.goles2;
+    const gCon = esJ1 ? p.goles2 : p.goles1;
+
+    const huboPen = (p.penales_g1 !== null && p.penales_g2 !== null && p.penales_g1 !== undefined);
+    if (huboPen) {
+      const penFav = esJ1 ? p.penales_g1 : p.penales_g2;
+      const penCon = esJ1 ? p.penales_g2 : p.penales_g1;
+      if (penFav > penCon) pg++; else pp++;
+    } else {
+      if (gFav > gCon) pg++;
+      else if (gFav < gCon) pp++;
+      else pe++;
+    }
+  });
+
+  const ptsObtenidos = (pg * 3) + (pe * 1);
+  const ptsPosibles = pj * 3;
+  const efectividad = ptsPosibles > 0 ? Math.round((ptsObtenidos / ptsPosibles) * 100) : 0;
+
+  document.getElementById('p-stat-pj').textContent = pj;
+  document.getElementById('p-stat-pg').textContent = pg;
+  document.getElementById('p-stat-pe').textContent = pe;
+  document.getElementById('p-stat-pp').textContent = pp;
+  document.getElementById('p-stat-efec').textContent = `${efectividad}%`;
+
+  const listaBox = document.getElementById('perfil-lista-partidos');
+  if (misPartidos.length === 0) {
+    listaBox.innerHTML = `<p style="color:var(--text-muted); font-size:0.78rem; text-align:center; padding:10px;">No tenés partidos registrados todavía.</p>`;
+  } else {
+    listaBox.innerHTML = misPartidos.slice(0, 15).map(p => {
+      const jLocal = JUGADORES.find(j => j.id === p.jugador1_id)?.nombre || 'Local';
+      const jVisita = JUGADORES.find(j => j.id === p.jugador2_id)?.nombre || 'Visitante';
+
+      const torneoRel = TORNEOS.find(t => t.id === p.torneo_id);
+      const nombreTorneo = torneoRel ? torneoRel.nombre : 'Torneo';
+      const juegoNom = torneoRel?.juego ? `(${torneoRel.juego})` : '';
+      const fecha = new Date(p.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }).replace('.', '');
+
+      const escLocal = obtenerEscudoJugador(p.jugador1_id, torneoRel);
+      const escVisita = obtenerEscudoJugador(p.jugador2_id, torneoRel);
+      const imgLocalHtml = escLocal ? `<img src="${escLocal}" class="club-badge-micro" style="margin-right:6px;">` : '';
+      const imgVisitaHtml = escVisita ? `<img src="${escVisita}" class="club-badge-micro" style="margin-left:6px;">` : '';
+
+      let scoreHtml = `<span class="score-centro-h2h" style="font-size:0.95rem;">${p.goles1} - ${p.goles2}</span>`;
+      if (p.penales_g1 !== null && p.penales_g2 !== null && p.penales_g1 !== undefined) {
+        scoreHtml = `<span class="score-centro-h2h penales" style="font-size:0.85rem;">(${p.penales_g1}) ${p.goles1} - ${p.goles2} (${p.penales_g2})</span>`;
+      }
+
+      return `
+        <div class="tarjeta-partido-h2h-pro" style="padding: 8px 10px;">
+          <div class="fila-matchup-h2h">
+            <div class="lado-jugador local" style="font-size:0.82rem;">
+              ${imgLocalHtml}
+              <span>${jLocal}</span>
+            </div>
+            <div class="lado-score">
+              ${scoreHtml}
+            </div>
+            <div class="lado-jugador visitante" style="font-size:0.82rem;">
+              <span>${jVisita}</span>
+              ${imgVisitaHtml}
+            </div>
+          </div>
+          <div class="fila-meta-h2h">
+            <span>${nombreTorneo} ${juegoNom} • ${fecha}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('modal-perfil-usuario').style.display = 'flex';
+};
+
+window.cerrarModalPerfilUsuario = function() {
+  document.getElementById('modal-perfil-usuario').style.display = 'none';
+};
+
+function restringirLimitesCrop() {
+  const currentW = avatarImgState.img.width * avatarImgState.scale;
+  const currentH = avatarImgState.img.height * avatarImgState.scale;
+
+  avatarImgState.offsetX = Math.min(0, Math.max(300 - currentW, avatarImgState.offsetX));
+  avatarImgState.offsetY = Math.min(0, Math.max(300 - currentH, avatarImgState.offsetY));
+}
+
+window.prepararRecorteAvatar = function(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        avatarImgState.img = img;
+        avatarImgState.baseScale = Math.max(300 / img.width, 300 / img.height);
+        avatarImgState.scale = avatarImgState.baseScale;
+        avatarImgState.offsetX = (300 - img.width * avatarImgState.scale) / 2;
+        avatarImgState.offsetY = (300 - img.height * avatarImgState.scale) / 2;
+        
+        document.getElementById('zoom-avatar-range').value = 1;
+        document.getElementById('box-recorte-avatar').style.display = 'block';
+        restringirLimitesCrop();
+        redibujarCanvasCrop();
+        configurarEventosArrastreCrop();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+function redibujarCanvasCrop() {
+  const canvas = document.getElementById('canvas-crop-avatar');
+  if (!canvas || !avatarImgState.img) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, 300, 300);
+  ctx.drawImage(
+    avatarImgState.img, 
+    avatarImgState.offsetX, 
+    avatarImgState.offsetY, 
+    avatarImgState.img.width * avatarImgState.scale, 
+    avatarImgState.img.height * avatarImgState.scale
+  );
+}
+
+window.ajustarZoomAvatar = function(val) {
+  if (!avatarImgState.img) return;
+  const nuevoScale = parseFloat(val) * avatarImgState.baseScale;
+  
+  const centroX = 150;
+  const centroY = 150;
+  const ratio = nuevoScale / avatarImgState.scale;
+
+  avatarImgState.offsetX = centroX - (centroX - avatarImgState.offsetX) * ratio;
+  avatarImgState.offsetY = centroY - (centroY - avatarImgState.offsetY) * ratio;
+  avatarImgState.scale = nuevoScale;
+
+  restringirLimitesCrop();
+  redibujarCanvasCrop();
+};
+
+function configurarEventosArrastreCrop() {
+  const canvas = document.getElementById('canvas-crop-avatar');
+  if (!canvas) return;
+
+  const iniciarArrastre = (clientX, clientY) => {
+    avatarImgState.isDragging = true;
+    avatarImgState.startX = clientX - avatarImgState.offsetX;
+    avatarImgState.startY = clientY - avatarImgState.offsetY;
+  };
+
+  const moverArrastre = (clientX, clientY) => {
+    if (!avatarImgState.isDragging) return;
+    avatarImgState.offsetX = clientX - avatarImgState.startX;
+    avatarImgState.offsetY = clientY - avatarImgState.startY;
+    restringirLimitesCrop();
+    redibujarCanvasCrop();
+  };
+
+  const finalizarArrastre = () => { avatarImgState.isDragging = false; };
+
+  canvas.onmousedown = (e) => iniciarArrastre(e.clientX, e.clientY);
+  window.onmousemove = (e) => moverArrastre(e.clientX, e.clientY);
+  window.onmouseup = finalizarArrastre;
+
+  canvas.ontouchstart = (e) => {
+    if (e.touches.length === 1) {
+      iniciarArrastre(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+  canvas.ontouchmove = (e) => {
+    if (e.touches.length === 1 && avatarImgState.isDragging) {
+      moverArrastre(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+  canvas.ontouchend = finalizarArrastre;
+}
+
+window.guardarPerfilUsuario = async function(e) {
+  e.preventDefault();
+  if (!CUENTA_LOGUEADA) return;
+
+  const rawUser = document.getElementById('edit-perfil-username').value.trim().toLowerCase().replace(/^@/, '');
+  const nuevoPin = document.getElementById('edit-perfil-pin').value.trim();
+
+  if (!rawUser || rawUser.length > 12) {
+    alert('El nombre de usuario no puede estar vacío ni superar los 12 caracteres.');
+    return;
+  }
+  if (nuevoPin.length !== 4 || isNaN(nuevoPin)) {
+    alert('El PIN debe tener exactamente 4 números.');
+    return;
+  }
+
+  const nuevoUsername = `@${rawUser}`;
+
+  const { data: ocupado, error: errCheck } = await db
+    .from('cuentas')
+    .select('id')
+    .eq('username', nuevoUsername)
+    .neq('id', CUENTA_LOGUEADA.id)
+    .maybeSingle();
+
+  if (errCheck) {
+    alert('Error al verificar el nombre de usuario: ' + errCheck.message);
+    return;
+  }
+
+  if (ocupado) {
+    alert(`El nombre de usuario "${nuevoUsername}" ya pertenece a otro usuario en Mundialitos. Por favor elegí otro.`);
+    return;
+  }
+
+  let avatarBase64 = CUENTA_LOGUEADA.avatar_url;
+  const fileInput = document.getElementById('edit-perfil-file');
+
+  if (fileInput.files && fileInput.files[0] && avatarImgState.img) {
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = 300;
+    finalCanvas.height = 300;
+    const fCtx = finalCanvas.getContext('2d');
+    fCtx.drawImage(
+      avatarImgState.img, 
+      avatarImgState.offsetX, 
+      avatarImgState.offsetY, 
+      avatarImgState.img.width * avatarImgState.scale, 
+      avatarImgState.img.height * avatarImgState.scale
+    );
+    avatarBase64 = finalCanvas.toDataURL('image/png');
+  }
+
+  try {
+    const updatePayload = {
+      username: nuevoUsername,
+      pin_seguridad: nuevoPin
+    };
+    if (avatarBase64 !== undefined) updatePayload.avatar_url = avatarBase64;
+
+    const { error } = await db.from('cuentas').update(updatePayload).eq('id', CUENTA_LOGUEADA.id);
+    if (error) throw error;
+
+    CUENTA_LOGUEADA.username = nuevoUsername;
+    CUENTA_LOGUEADA.pin_seguridad = nuevoPin;
+    CUENTA_LOGUEADA.avatar_url = avatarBase64;
+
+    alert('¡Tus datos fueron actualizados correctamente!');
+    cerrarModalPerfilUsuario();
+    await recargarTodo();
+  } catch (err) {
+    alert('Error al actualizar datos: ' + err.message);
+  }
+};
+
+// =============================================================
+// SELECCIÓN DE PARTICIPANTES (SUBMENÚ MODAL Y ASIGNACIÓN DE CLUBES)
+// =============================================================
+let PARTICIPANTES_SELECCIONADOS_TEMP = [];
+
+window.abrirModalSeleccionParticipantes = function() {
+  const container = document.getElementById('lista-tarjetas-participantes');
+  if (!container) return;
+
+  if (!JUGADORES || JUGADORES.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem; text-align:center; padding:20px; grid-column:1/-1;">No hay miembros en el Padrón.</p>';
+    document.getElementById('modal-seleccion-participantes').style.display = 'flex';
+    return;
+  }
+
+  container.innerHTML = JUGADORES.map(j => {
+    const avatarHtml = j.avatar_url 
+      ? `<img src="${j.avatar_url}" alt="${j.nombre}">` 
+      : `<span>${j.nombre ? j.nombre.charAt(0) : '?'}</span>`;
+
+    const estaSeleccionada = PARTICIPANTES_SELECCIONADOS_TEMP.includes(j.id);
+
+    return `
+      <div id="card-part-${j.id}" class="tarjeta-participante-sel ${estaSeleccionada ? 'seleccionada' : ''}" onclick="toggleParticipanteTemp('${j.id}')">
+        <div class="avatar-participante-sel">${avatarHtml}</div>
+        <div class="info-participante-sel">
+          <span>${j.nombre}</span>
+          <small id="status-part-${j.id}" style="color:${estaSeleccionada ? '#3fb950' : 'var(--text-muted)'};">${estaSeleccionada ? 'Seleccionado' : 'No seleccionado'}</small>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('modal-seleccion-participantes').style.display = 'flex';
+};
+
+window.cerrarModalSeleccionParticipantes = function() {
+  document.getElementById('modal-seleccion-participantes').style.display = 'none';
+};
+
+window.toggleParticipanteTemp = function(jId) {
+  const card = document.getElementById(`card-part-${jId}`);
+  const status = document.getElementById(`status-part-${jId}`);
+  if (!card) return;
+
+  const index = PARTICIPANTES_SELECCIONADOS_TEMP.indexOf(jId);
+  if (index > -1) {
+    PARTICIPANTES_SELECCIONADOS_TEMP.splice(index, 1);
+    card.classList.remove('seleccionada');
+    if (status) { status.textContent = 'No seleccionado'; status.style.color = 'var(--text-muted)'; }
+  } else {
+    PARTICIPANTES_SELECCIONADOS_TEMP.push(jId);
+    card.classList.add('seleccionada');
+    if (status) { status.textContent = 'Seleccionado'; status.style.color = '#3fb950'; }
+  }
+};
+
+window.confirmarSeleccionParticipantes = function() {
+  const labelResumen = document.getElementById('label-resumen-participantes');
+  if (labelResumen) {
+    const cant = PARTICIPANTES_SELECCIONADOS_TEMP.length;
+    labelResumen.textContent = cant === 0 ? 'Seleccionar del Padrón (0 elegidos)' : `${cant} participante${cant > 1 ? 's' : ''} seleccionado${cant > 1 ? 's' : ''}`;
+    labelResumen.style.color = cant > 0 ? '#3fb950' : '#f0f6fc';
+  }
+
+  cerrarModalSeleccionParticipantes();
+  actualizarSeccionAsignacionEquipos();
+};
+
+window.actualizarSeccionAsignacionEquipos = function() {
+  const boxEquipos = document.getElementById('box-seleccion-equipos');
+  const listaInputs = document.getElementById('lista-inputs-equipos');
+
+  if (!boxEquipos || !listaInputs) return;
+
+  if (PARTICIPANTES_SELECCIONADOS_TEMP.length === 0) {
+    boxEquipos.style.display = 'none';
+    return;
+  }
+
+  boxEquipos.style.display = 'block';
+
+  listaInputs.innerHTML = PARTICIPANTES_SELECCIONADOS_TEMP.map((jId, idx) => {
+    const jugador = JUGADORES.find(j => j.id === jId);
+    const defaultClub = BASE_CLUBES[idx % BASE_CLUBES.length];
+
+    if (!EQUIPOS_SELECCIONADOS_CREACION[jId]) {
+      EQUIPOS_SELECCIONADOS_CREACION[jId] = defaultClub;
+    }
+
+    const clubActual = EQUIPOS_SELECCIONADOS_CREACION[jId];
+
+    return `
+      <div class="club-select-row">
+        <strong style="min-width:65px; font-size:0.8rem;">${jugador ? jugador.nombre : 'J'}:</strong>
+        <img id="preview-escudo-input-${jId}" src="${clubActual.url}" class="club-badge-micro">
+        <div class="input-dropdown-wrapper">
+          <input type="text" id="input-buscar-club-${jId}" class="club-input-search" value="${formatearNombre(clubActual.name)}" 
+                 placeholder="Escribí para buscar club..." autocomplete="off"
+                 oninput="filtrarDropdownClubes('${jId}', this.value)" 
+                 onfocus="filtrarDropdownClubes('${jId}', this.value)">
+          <div id="dropdown-clubes-${jId}" class="club-dropdown-floating"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+window.filtrarDropdownClubes = function(jId, query) {
+  const drop = document.getElementById(`dropdown-clubes-${jId}`);
+  const qNorm = normalizarTxt(query);
+
+  let coincidencias = BASE_CLUBES.filter(c => normalizarTxt(c.name).includes(qNorm));
+
+  if (coincidencias.length === 0) {
+    drop.innerHTML = '<div style="padding:10px 14px; font-size:0.78rem; color:var(--text-muted); text-align:center;">Sin coincidencias (nombre personalizado)</div>';
+    drop.style.display = 'flex';
+    EQUIPOS_SELECCIONADOS_CREACION[jId] = { name: formatearNombre(query), url: '' };
+    return;
+  }
+
+  coincidencias.sort((a, b) => {
+    const aName = normalizarTxt(a.name);
+    const bName = normalizarTxt(b.name);
+    
+    if (aName === qNorm && bName !== qNorm) return -1;
+    if (bName === qNorm && aName !== qNorm) return 1;
+
+    const aEmpieza = aName.startsWith(qNorm);
+    const bEmpieza = bName.startsWith(qNorm);
+    if (aEmpieza && !bEmpieza) return -1;
+    if (!aEmpieza && bEmpieza) return 1;
+
+    return a.name.localeCompare(b.name);
+  });
+
+  coincidencias = coincidencias.slice(0, 20);
+
+  drop.innerHTML = coincidencias.map(c => `
+    <div class="club-dropdown-item" onclick="seleccionarClubParaJugador('${jId}', '${c.name.replace(/'/g, "\\'")}', '${c.url}')">
+      <img src="${c.url}" alt="${c.name}" onerror="this.style.display='none'">
+      <div class="club-dropdown-info">
+        <span>${formatearNombre(c.name)}</span>
+      </div>
+    </div>
+  `).join('');
+
+  drop.style.display = 'flex';
+};
+
+window.seleccionarClubParaJugador = function(jId, name, url) {
+  document.getElementById(`input-buscar-club-${jId}`).value = formatearNombre(name);
+  const img = document.getElementById(`preview-escudo-input-${jId}`);
+  if (img) {
+    img.src = url;
+    img.style.display = url ? 'inline-block' : 'none';
+  }
+  document.getElementById(`dropdown-clubes-${jId}`).style.display = 'none';
+  EQUIPOS_SELECCIONADOS_CREACION[jId] = { name: formatearNombre(name), url };
+};
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.club-select-row')) {
+    document.querySelectorAll('.club-dropdown-floating').forEach(d => d.style.display = 'none');
+  }
+});
 
 window.addEventListener('DOMContentLoaded', inicializar);
